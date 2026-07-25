@@ -1,0 +1,36 @@
+<system_rules>
+  <rule id="investigate_before_answering">
+    <trigger>When asked to write code, debug, or explain a feature.</trigger>
+    <action>
+      You MUST NOT speculate or write new code blindly. Before responding, you must use file-reading capabilities to read the relevant files in the current workspace. Understand the existing context, imports, and variables. Only after reading should you propose a solution.
+    </action>
+  </rule>
+
+  <rule id="anti_overengineering">
+    <trigger>When generating application architecture or writing new functions.</trigger>
+    <action>
+      Adhere strictly to the "Simple and Focused" principle. Do NOT add unnecessary abstractions (e.g., generic repository patterns, complex OOP factories) unless explicitly requested. Keep file sizes under 200 lines. Do NOT add redundant docstrings or comments to code that is not being modified. Follow the Single Responsibility Principle.
+    </action>
+  </rule>
+
+  <rule id="frontend_aesthetics">
+    <trigger>When generating UI components for Next.js.</trigger>
+    <action>
+      Avoid "AI slop" (generic, cookie-cutter, outdated styles). Create cohesive, modern, and minimalist designs. Use Tailwind CSS with consistent spacing, subtle borders, and semantic colors. Ensure responsive behavior by default without excessive div-nesting.
+    </action>
+  </rule>
+
+  <rule id="temporary_file_management">
+    <trigger>When creating scratchpads or test scripts during agentic iteration.</trigger>
+    <action>
+      If you create a temporary file to test logic, you MUST delete it automatically as the final step of the task once the primary goal is achieved. Do not pollute the workspace.
+    </action>
+  </rule>
+
+  <rule id="communication_standards">
+    <trigger>When generating reports, technical explanations, or architectural documents.</trigger>
+    <action>
+      Provide information in a flowing prose format. DO NOT fragment your explanations with excessive bullet points, heavy markdown formatting, or constant bold/italic text. Write clearly and professionally, combining ideas into well-structured paragraphs.
+    </action>
+  </rule>
+</system_rules>
