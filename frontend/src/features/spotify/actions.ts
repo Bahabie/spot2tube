@@ -6,7 +6,14 @@ import { revalidatePath } from "next/cache";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Auth.js stores accounts in the next_auth schema
+const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
+  db: { schema: "next_auth" },
+});
+
+// Application tables (sync_jobs) live in the public schema
+const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function getSpotifyPlaylists() {
   const session = await auth();
@@ -15,7 +22,7 @@ export async function getSpotifyPlaylists() {
   }
 
   // Fetch the user's Spotify account to get the access_token
-  const { data: accounts, error } = await supabase
+  const { data: accounts, error } = await supabaseAuth
     .from("accounts")
     .select("access_token")
     .eq("userId", session.user.id)
@@ -52,7 +59,7 @@ export async function syncPlaylistToYouTube(playlistId: string, playlistName: st
   }
 
   // Insert a new job into the sync_jobs table
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from("sync_jobs")
     .insert([
       {
