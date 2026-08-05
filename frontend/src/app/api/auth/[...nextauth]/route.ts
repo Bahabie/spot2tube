@@ -4,6 +4,9 @@ import { authConfig } from "@/lib/auth";
 
 const AUTH_ORIGIN = "http://127.0.0.1:3000";
 
+// Force AUTH_URL environment variable so setEnvDefaults cannot fall back to localhost
+process.env.AUTH_URL = AUTH_ORIGIN;
+
 /**
  * Build a plain Web Request with 127.0.0.1 forced as the hostname.
  *
@@ -24,6 +27,7 @@ function toWebRequest(req: Request): Request {
   headers.set("host", "127.0.0.1:3000");
   headers.set("x-forwarded-host", "127.0.0.1:3000");
   headers.set("x-forwarded-proto", "http");
+  headers.set("origin", AUTH_ORIGIN);
 
   return new Request(fixed, {
     method: req.method,

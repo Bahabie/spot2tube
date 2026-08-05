@@ -7,8 +7,8 @@ import { ArrowRight, Loader2, Music } from "lucide-react";
 interface Playlist {
   id: string;
   name: string;
-  images: { url: string }[];
-  trackCount: number;
+  images?: { url: string }[];
+  tracks?: { total: number };
 }
 
 export function PlaylistCard({ playlist }: { playlist: Playlist }) {
@@ -34,7 +34,7 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between p-4 rounded-xl glass-panel hover-lift bg-white/5 border-white/10 group">
         <div className="flex items-center gap-4">
-          {playlist.images[0]?.url ? (
+          {playlist.images?.[0]?.url ? (
             <img
               src={playlist.images[0].url}
               alt={playlist.name}
@@ -49,7 +49,7 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
             <h3 className="font-semibold text-lg text-white group-hover:text-[#1DB954] transition-colors">
               {playlist.name}
             </h3>
-            <p className="text-sm text-gray-400">{playlist.trackCount} tracks</p>
+            <p className="text-sm text-gray-400">{playlist.tracks?.total || 0} tracks</p>
           </div>
         </div>
         <button

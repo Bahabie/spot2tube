@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { getValidSpotifyToken, refreshSpotifyToken } from "@/lib/spotifyToken";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
@@ -19,14 +20,21 @@ interface SpotifyPlaylist {
   id: string;
   name: string;
   images?: { url: string }[];
-  tracks: { href: string; total: number };
+  tracks?: { href: string; total: number };
 }
 
 interface MappedPlaylist {
   id: string;
   name: string;
-  images: { url: string }[];
-  trackCount: number;
+  images?: { url: string }[];
+  tracks?: { total: number };
+}
+
+async function fetchPlaylists(accessToken: string): Promise<Response> {
+  return fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
 }
 
 export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
@@ -35,27 +43,32 @@ export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
     throw new Error("Unauthorized");
   }
 
-  // Fetch the user's Spotify account to get the access_token
-  const { data: accounts, error } = await supabaseAuth
-    .from("accounts")
-    .select("access_token")
-    .eq("userId", session.user.id)
-    .eq("provider", "spotify")
-    .limit(1);
+  const userId = session.user.id;
 
-  if (error || !accounts || accounts.length === 0) {
-    throw new Error("Spotify account not linked");
+  // Get a (proactively refreshed) token.
+  let { accessToken } = await getValidSpotifyToken(userId);
+
+  let res = await fetchPlaylists(accessToken);
+
+  // 401 fallback — token might have been revoked or DB expiry was stale.
+  if (res.status === 401) {
+    console.warn("[getSpotifyPlaylists] 401 on first attempt, forcing token refresh");
+
+    const { data: accounts } = await supabaseAuth
+      .from("accounts")
+      .select("refresh_token")
+      .eq("userId", userId)
+      .eq("provider", "spotify")
+      .limit(1);
+
+    if (!accounts || accounts.length === 0 || !accounts[0].refresh_token) {
+      throw new Error("Spotify account not linked or missing refresh token");
+    }
+
+    const refreshed = await refreshSpotifyToken(userId, accounts[0].refresh_token);
+    accessToken = refreshed.accessToken;
+    res = await fetchPlaylists(accessToken);
   }
-
-  const accessToken = accounts[0].access_token;
-
-  // Fetch playlists from Spotify API
-  const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    next: { revalidate: 60 },
-  });
 
   if (!res.ok) {
     const body = await res.text();
@@ -66,12 +79,12 @@ export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
   const data = await res.json();
   const items: SpotifyPlaylist[] = data.items ?? [];
 
-  // Explicitly map to ensure tracks.total survives serialization
+  // Map to safely pass optional images and tracks
   return items.map((p) => ({
     id: p.id,
     name: p.name,
-    images: p.images ?? [],
-    trackCount: p.tracks?.total ?? 0,
+    images: p.images,
+    tracks: p.tracks ? { total: p.tracks.total ?? 0 } : undefined,
   }));
 }
 
