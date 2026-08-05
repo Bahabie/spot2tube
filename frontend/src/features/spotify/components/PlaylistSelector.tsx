@@ -17,7 +17,7 @@ export async function PlaylistSelector() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold mb-6">Your Playlists</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {playlists.map((playlist: any) => (
+          {playlists.map((playlist) => (
             <PlaylistCard key={playlist.id} playlist={playlist} />
           ))}
         </div>

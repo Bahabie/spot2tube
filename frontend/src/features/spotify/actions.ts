@@ -15,7 +15,21 @@ const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
 // Application tables (sync_jobs) live in the public schema
 const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function getSpotifyPlaylists() {
+interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  images?: { url: string }[];
+  tracks: { href: string; total: number };
+}
+
+interface MappedPlaylist {
+  id: string;
+  name: string;
+  images: { url: string }[];
+  trackCount: number;
+}
+
+export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
@@ -40,44 +54,80 @@ export async function getSpotifyPlaylists() {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    // We want to fetch fresh playlists each time for now, or cache for a short time
     next: { revalidate: 60 },
   });
 
   if (!res.ok) {
+    const body = await res.text();
+    console.error("[getSpotifyPlaylists] Spotify API error:", res.status, body);
     throw new Error("Failed to fetch playlists from Spotify");
   }
 
   const data = await res.json();
-  return data.items || [];
+  const items: SpotifyPlaylist[] = data.items ?? [];
+
+  // Explicitly map to ensure tracks.total survives serialization
+  return items.map((p) => ({
+    id: p.id,
+    name: p.name,
+    images: p.images ?? [],
+    trackCount: p.tracks?.total ?? 0,
+  }));
 }
 
-export async function syncPlaylistToYouTube(playlistId: string, playlistName: string) {
+export async function syncPlaylistToYouTube(
+  playlistId: string,
+  playlistName: string,
+): Promise<{ id: string }> {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
 
+  // Verify user has connected their Google/YouTube account
+  const { data: googleAccounts, error: googleErr } = await supabaseAuth
+    .from("accounts")
+    .select("access_token")
+    .eq("userId", session.user.id)
+    .eq("provider", "google")
+    .limit(1);
+
+  if (googleErr) {
+    console.error("[syncPlaylistToYouTube] Google account lookup failed:", googleErr);
+    throw new Error("Failed to check YouTube connection");
+  }
+
+  if (!googleAccounts || googleAccounts.length === 0) {
+    throw new Error(
+      "YouTube account not connected. Please connect your Google account first.",
+    );
+  }
+
   // Insert a new job into the sync_jobs table
+  // Note: sync_jobs schema has no playlist_name column — store only the ID
   const { data, error } = await supabasePublic
     .from("sync_jobs")
     .insert([
       {
         user_id: session.user.id,
         spotify_playlist_id: playlistId,
-        playlist_name: playlistName,
         status: "PENDING",
         progress_percentage: 0,
       },
     ])
-    .select()
+    .select("id")
     .single();
 
   if (error) {
-    console.error("Failed to insert sync job:", error);
+    console.error("[syncPlaylistToYouTube] Supabase insert failed:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     throw new Error("Failed to start sync job");
   }
 
   revalidatePath("/");
-  return data;
+  return { id: data.id };
 }

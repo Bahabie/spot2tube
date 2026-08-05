@@ -1,41 +1,50 @@
-import { handlers } from "@/lib/auth";
-import { NextRequest } from "next/server";
+import { Auth, setEnvDefaults } from "@auth/core";
+import type { AuthConfig } from "@auth/core";
+import { authConfig } from "@/lib/auth";
 
-const AUTH_HOST = "127.0.0.1:3000";
+const AUTH_ORIGIN = "http://127.0.0.1:3000";
 
 /**
- * Intercept the NextRequest to force 127.0.0.1 as the hostname.
- * Next.js 15 normalizes 127.0.0.1 → localhost internally, which
- * causes a redirect_uri mismatch during the OAuth token exchange
- * (oauth4webapi reads the Host header to compute redirect_uri).
+ * Build a plain Web Request with 127.0.0.1 forced as the hostname.
+ *
+ * Next.js 15 normalizes 127.0.0.1 → localhost inside NextRequest.nextUrl.
+ * This causes a redirect_uri mismatch during the OAuth token exchange
+ * because oauth4webapi computes the redirect_uri from the Host header.
+ *
+ * By constructing a standard Web Request (not NextRequest) and passing it
+ * directly to @auth/core's Auth(), we completely sidestep the normalization.
  */
-function sanitizeRequest(req: NextRequest): NextRequest {
-  const url = req.nextUrl.clone();
+function toWebRequest(req: Request): Request {
+  const original = new URL(req.url);
 
-  if (url.hostname === "localhost") {
-    url.hostname = "127.0.0.1";
-    url.port = "3000";
+  // Replace localhost with 127.0.0.1 (keeps path + query intact)
+  const fixed = new URL(original.pathname + original.search, AUTH_ORIGIN);
 
-    const headers = new Headers(req.headers);
-    headers.set("host", AUTH_HOST);
-    headers.set("x-forwarded-host", AUTH_HOST);
-    headers.set("x-forwarded-proto", "http");
+  const headers = new Headers(req.headers);
+  headers.set("host", "127.0.0.1:3000");
+  headers.set("x-forwarded-host", "127.0.0.1:3000");
+  headers.set("x-forwarded-proto", "http");
 
-    return new NextRequest(url, {
-      method: req.method,
-      headers,
-      body: req.method === "POST" ? req.body : undefined,
-      duplex: req.method === "POST" ? "half" : undefined,
-    });
-  }
-
-  return req;
+  return new Request(fixed, {
+    method: req.method,
+    headers,
+    body: req.method !== "GET" && req.method !== "HEAD" ? req.body : undefined,
+    // @ts-expect-error -- duplex required for streaming body in undici/Node
+    duplex: req.method !== "GET" && req.method !== "HEAD" ? "half" : undefined,
+  });
 }
 
-export async function GET(req: NextRequest) {
-  return handlers.GET(sanitizeRequest(req));
+/**
+ * Call @auth/core directly instead of next-auth's handlers.
+ * This avoids NextRequest URL normalization entirely.
+ */
+async function handler(req: Request): Promise<Response> {
+  // Cast through unknown: NextAuthConfig uses next-auth's bundled @auth/core
+  // types which are nominally incompatible with the top-level @auth/core.
+  const config = { ...authConfig } as unknown as AuthConfig;
+  setEnvDefaults(process.env, config, true);
+
+  return Auth(toWebRequest(req), config);
 }
 
-export async function POST(req: NextRequest) {
-  return handlers.POST(sanitizeRequest(req));
-}
+export { handler as GET, handler as POST };
