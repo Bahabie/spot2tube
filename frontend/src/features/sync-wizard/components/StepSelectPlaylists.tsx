@@ -8,7 +8,7 @@ export interface MappedPlaylist {
   id: string;
   name: string;
   images?: { url: string }[];
-  tracks?: { total: number };
+  tracksCount?: number;
 }
 
 interface StepSelectPlaylistsProps {
@@ -28,6 +28,7 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
     async function loadPlaylists() {
       try {
         const data = await getSpotifyPlaylists();
+        console.log("PLAYLISTS FROM SERVER:", data);
         setPlaylists(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load playlists.");
@@ -133,7 +134,7 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
                 )}
                 <div className="flex-1 overflow-hidden">
                   <h3 className="font-semibold text-white truncate">{playlist.name}</h3>
-                  <p className="text-sm text-gray-400">{playlist.tracks?.total ?? 0} tracks</p>
+                  <p className="text-sm text-gray-400">{playlist.tracksCount ?? 0} tracks</p>
                 </div>
               </div>
             );

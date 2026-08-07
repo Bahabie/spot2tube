@@ -1,17 +1,19 @@
-import { getSession } from "next-auth/react";
+"use server";
+
+import { auth } from "@/lib/auth";
 
 export async function startSyncJob(
   playlistId: string,
   targetName: string,
   searchAlgo: number
 ): Promise<{ jobId: string }> {
-  const session = await getSession();
+  const session = await auth();
   
   // Extract token from session (adjust based on NextAuth configuration)
   const token = (session as any)?.supabaseAccessToken || (session as any)?.accessToken || "";
   
-  if (!token) {
-    throw new Error("Unauthorized: No session token available.");
+  if (!token || !session?.user?.id) {
+    throw new Error("Unauthorized: No session token or user ID available.");
   }
 
   const response = await fetch("http://127.0.0.1:8000/api/v1/sync/start", {
@@ -25,7 +27,8 @@ export async function startSyncJob(
       target_playlist_name: targetName,
       yt_search_algo: searchAlgo,
       privacy_status: "PRIVATE",
-      reverse_playlist: true
+      reverse_playlist: true,
+      user_id: session.user.id
     })
   });
 

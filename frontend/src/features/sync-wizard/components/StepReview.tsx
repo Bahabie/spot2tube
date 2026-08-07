@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Music2, Play, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { MappedPlaylist } from "./StepSelectPlaylists";
-import { syncPlaylistToYouTube } from "@/features/spotify/actions";
+import { startSyncJob } from "@/features/sync-job/api";
 
 interface StepReviewProps {
   selectedPlaylists: MappedPlaylist[];
@@ -15,23 +15,27 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const totalTracks = selectedPlaylists.reduce((acc, curr) => acc + (curr.tracks?.total ?? 0), 0);
+  const totalTracks = selectedPlaylists.reduce((acc, curr) => acc + (curr.tracksCount ?? 0), 0);
 
   const handleStartTransfer = async () => {
     setIsTransferring(true);
     setError(null);
     try {
-      // In a real scenario we might batch this or the backend worker handles it.
-      // Currently the action handles one playlist per call, so we map over them:
+      // Enqueue a sync job for each selected playlist
+      // We pass 0 for searchAlgo to default to direct string matches
       for (const playlist of selectedPlaylists) {
-        await syncPlaylistToYouTube(playlist.id, playlist.name);
+        await startSyncJob(playlist.id, playlist.name, 0);
       }
+      
       setCompleted(true);
+      
+      // Delay briefly to show the success state before calling onComplete 
+      // (which handles routing to the dashboard/resetting the wizard)
       setTimeout(() => {
         onComplete();
-      }, 2000);
+      }, 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Transfer failed.");
+      setError(err instanceof Error ? err.message : "Transfer failed to start. Please try again.");
     } finally {
       setIsTransferring(false);
     }
@@ -43,8 +47,8 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
         <div className="mx-auto w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center">
           <CheckCircle2 className="w-12 h-12 text-green-500" />
         </div>
-        <h2 className="text-4xl font-bold text-white">Transfer Started!</h2>
-        <p className="text-gray-400">Your playlists are now being synced in the background.</p>
+        <h2 className="text-4xl font-bold text-white">Migration Started!</h2>
+        <p className="text-gray-400">Your playlists are now being synced in the background. Check your dashboard for tracking.</p>
       </div>
     );
   }

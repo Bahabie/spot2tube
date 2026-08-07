@@ -3,15 +3,9 @@
 import { useState } from "react";
 import { syncPlaylistToYouTube } from "../actions";
 import { ArrowRight, Loader2, Music } from "lucide-react";
+import { SpotifyPlaylist } from "../types";
 
-interface Playlist {
-  id: string;
-  name: string;
-  images?: { url: string }[];
-  tracks?: { total: number };
-}
-
-export function PlaylistCard({ playlist }: { playlist: Playlist }) {
+export function PlaylistCard({ playlist }: { playlist: SpotifyPlaylist }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,7 +43,7 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
             <h3 className="font-semibold text-lg text-white group-hover:text-[#1DB954] transition-colors">
               {playlist.name}
             </h3>
-            <p className="text-sm text-gray-400">{playlist.tracks?.total || 0} tracks</p>
+            <p className="text-sm text-gray-400">{playlist.tracksCount} tracks</p>
           </div>
         </div>
         <button
@@ -72,4 +66,3 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
     </div>
   );
 }
-

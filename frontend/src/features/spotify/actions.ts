@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getValidSpotifyToken, refreshSpotifyToken } from "@/lib/spotifyToken";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { SpotifyApiPlaylist, SpotifyPlaylist } from "./types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,28 +17,46 @@ const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
 // Application tables (sync_jobs) live in the public schema
 const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
 
-interface SpotifyPlaylist {
-  id: string;
-  name: string;
-  images?: { url: string }[];
-  tracks?: { href: string; total: number };
-}
-
-interface MappedPlaylist {
-  id: string;
-  name: string;
-  images?: { url: string }[];
-  tracks?: { total: number };
-}
-
-async function fetchPlaylists(accessToken: string): Promise<Response> {
-  return fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
+async function fetchUserPlaylists(accessToken: string): Promise<SpotifyPlaylist[]> {
+  const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
   });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("TokenExpired");
+    }
+    const body = await res.text();
+    console.error("[fetchUserPlaylists] Spotify API error:", res.status, body);
+    throw new Error("Failed to fetch playlists from Spotify");
+  }
+
+  const data = await res.json();
+  const items: SpotifyApiPlaylist[] = data.items ?? [];
+
+  if (items.length > 0) {
+    console.log("[fetchUserPlaylists] First playlist raw:", JSON.stringify(items[0], null, 2));
+  }
+
+  // Map to safely pass optional images and cleanly extract the tracks total
+  return items.map((p: any) => {
+    // If tracks is an object with total, use it. If it's a number, use it directly.
+    const count = typeof p.tracks === 'number' 
+      ? p.tracks 
+      : p.tracks?.total;
+      
+    return {
+      id: p.id,
+      name: p.name,
+      images: p.images,
+      tracksCount: count || 0,
+      tracks: { total: count || 0 } // Add this to ensure backward compatibility if UI hasn't hot-reloaded
+    };
+  });
 }
 
-export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
+export async function getSpotifyPlaylists(): Promise<SpotifyPlaylist[]> {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
@@ -48,44 +67,29 @@ export async function getSpotifyPlaylists(): Promise<MappedPlaylist[]> {
   // Get a (proactively refreshed) token.
   let { accessToken } = await getValidSpotifyToken(userId);
 
-  let res = await fetchPlaylists(accessToken);
+  try {
+    return await fetchUserPlaylists(accessToken);
+  } catch (err) {
+    // 401 fallback — token might have been revoked or DB expiry was stale.
+    if (err instanceof Error && err.message === "TokenExpired") {
+      console.warn("[getSpotifyPlaylists] 401 on first attempt, forcing token refresh");
 
-  // 401 fallback — token might have been revoked or DB expiry was stale.
-  if (res.status === 401) {
-    console.warn("[getSpotifyPlaylists] 401 on first attempt, forcing token refresh");
+      const { data: accounts } = await supabaseAuth
+        .from("accounts")
+        .select("refresh_token")
+        .eq("userId", userId)
+        .eq("provider", "spotify")
+        .limit(1);
 
-    const { data: accounts } = await supabaseAuth
-      .from("accounts")
-      .select("refresh_token")
-      .eq("userId", userId)
-      .eq("provider", "spotify")
-      .limit(1);
+      if (!accounts || accounts.length === 0 || !accounts[0].refresh_token) {
+        throw new Error("Spotify account not linked or missing refresh token");
+      }
 
-    if (!accounts || accounts.length === 0 || !accounts[0].refresh_token) {
-      throw new Error("Spotify account not linked or missing refresh token");
+      const refreshed = await refreshSpotifyToken(userId, accounts[0].refresh_token);
+      return await fetchUserPlaylists(refreshed.accessToken);
     }
-
-    const refreshed = await refreshSpotifyToken(userId, accounts[0].refresh_token);
-    accessToken = refreshed.accessToken;
-    res = await fetchPlaylists(accessToken);
+    throw err;
   }
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error("[getSpotifyPlaylists] Spotify API error:", res.status, body);
-    throw new Error("Failed to fetch playlists from Spotify");
-  }
-
-  const data = await res.json();
-  const items: SpotifyPlaylist[] = data.items ?? [];
-
-  // Map to safely pass optional images and tracks
-  return items.map((p) => ({
-    id: p.id,
-    name: p.name,
-    images: p.images,
-    tracks: p.tracks ? { total: p.tracks.total ?? 0 } : undefined,
-  }));
 }
 
 export async function syncPlaylistToYouTube(

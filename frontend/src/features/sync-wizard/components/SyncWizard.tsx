@@ -2,11 +2,11 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { ServiceGrid } from "./ServiceGrid";
 import { StepSourceAuth } from "./StepSourceAuth";
 import { StepSelectPlaylists, MappedPlaylist } from "./StepSelectPlaylists";
 import { StepReview } from "./StepReview";
+import { YouTubeAuthForm } from "../../youtube/components/YouTubeAuthForm";
 
 interface SyncWizardProps {
   spotifyLinked: boolean;
@@ -20,6 +20,13 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   const step = stepParam ? parseInt(stepParam, 10) : 1;
 
   const [selectedPlaylists, setSelectedPlaylists] = useState<MappedPlaylist[]>([]);
+  const [showYouTubeAuth, setShowYouTubeAuth] = useState(false);
+
+  useEffect(() => {
+    if (step !== 4) {
+      setShowYouTubeAuth(false);
+    }
+  }, [step]);
 
   useEffect(() => {
     // Hydrate playlists from localStorage if they exist
@@ -55,11 +62,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
 
   const handleDestinationSelect = (serviceId: string) => {
     if (serviceId === "youtube") {
-      if (googleLinked) {
-        setStep(5);
-      } else {
-        signIn("google", { callbackUrl: "/?step=5" });
-      }
+      setShowYouTubeAuth(true);
     }
   };
 
@@ -96,6 +99,9 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
         />
       );
     case 4:
+      if (showYouTubeAuth) {
+        return <YouTubeAuthForm />;
+      }
       return (
         <ServiceGrid
           title="Choose Destination"
