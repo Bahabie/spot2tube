@@ -2,7 +2,7 @@ import asyncio
 
 from app.db.pgmq import read_message, delete_message
 from app.db.supabase import get_supabase_client
-from app.worker.task_handlers import process_sync_job
+from app.worker.task_handlers import process_playlist_sync_job
 
 QUEUE_NAME = "spot2tube_jobs"
 supabase = get_supabase_client()
@@ -34,21 +34,19 @@ async def poll_queue():
             # Mark job as PROCESSING
             supabase.table("sync_jobs").update({"status": "PROCESSING"}).eq("id", job_id).execute()
             
-            # Execute Sync
-            success = await process_sync_job(job_id, payload)
+            # Execute sync — process_playlist_sync_job is synchronous and
+            # raises on catastrophic failure (allowing PGMQ visibility
+            # timeout to requeue the message).
+            process_playlist_sync_job(payload)
             
-            if success:
-                print(f"Job {job_id} completed successfully.")
-                supabase.table("sync_jobs").update({"status": "COMPLETED"}).eq("id", job_id).execute()
-                delete_message(QUEUE_NAME, msg_id)
-            else:
-                print(f"Job {job_id} failed.")
-                supabase.table("sync_jobs").update({"status": "FAILED"}).eq("id", job_id).execute()
-                # Do NOT delete from queue immediately if we want retry logic, 
-                # but for simplicity we will delete to avoid poison pills if hard failed.
-                delete_message(QUEUE_NAME, msg_id)
+            print(f"Job {job_id} completed successfully.")
+            supabase.table("sync_jobs").update({"status": "COMPLETED"}).eq("id", job_id).execute()
+            delete_message(QUEUE_NAME, msg_id)
                 
         except Exception as e:
+            # Catastrophic failures from the handler land here.
+            # The message is NOT deleted, so PGMQ will re-surface it
+            # after the 300-second visibility timeout expires.
             print(f"Unexpected error in worker loop: {e}")
             await asyncio.sleep(5)
 
