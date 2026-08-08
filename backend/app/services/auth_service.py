@@ -12,7 +12,7 @@ async def get_valid_token(user_id: str, provider: str) -> Optional[str]:
     Refreshes the token if it expires in less than 5 minutes.
     """
     # Fetch token details from next_auth.accounts
-    response = supabase.table("accounts").select(
+    response = supabase.schema("next_auth").table("accounts").select(
         "id, access_token, refresh_token, expires_at"
     ).eq("userId", user_id).eq("provider", provider).execute()
 
@@ -40,7 +40,7 @@ async def get_valid_token(user_id: str, provider: str) -> Optional[str]:
         new_expires_at = current_time + new_token_data.get("expires_in", 3600)
         
         # Update database
-        supabase.table("accounts").update({
+        supabase.schema("next_auth").table("accounts").update({
             "access_token": new_access_token,
             "expires_at": new_expires_at
         }).eq("id", account["id"]).execute()

@@ -95,11 +95,12 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                 f"Job {job_id}: No valid Google token for user {user_id}"
             )
 
-        # ytmusicapi expects a raw header string; construct from OAuth token.
-        yt_auth_headers: str = (
-            f"Authorization: Bearer {google_token}\n"
-            f"User-Agent: Spot2Tube-Sync/0.1"
-        )
+        import json
+        # ytmusicapi expects the headers as a JSON string
+        yt_auth_headers: str = json.dumps({
+            "Authorization": f"Bearer {google_token}",
+            "User-Agent": "Spot2Tube-Sync/0.1"
+        })
         yt_service = YouTubeClientService(auth_headers=yt_auth_headers)
 
         # ---- Step 3: Fetch Spotify tracks ----------------------------

@@ -22,6 +22,7 @@ class SyncJobRequest(BaseModel):
     yt_search_algo: int = 0
     privacy_status: str = "PRIVATE"
     reverse_playlist: bool = True
+    user_id: str
 
 
 class SyncJobResponse(BaseModel):
@@ -38,12 +39,25 @@ class SyncJobResponse(BaseModel):
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def start_sync_job(request: SyncJobRequest) -> SyncJobResponse:
-    """Accept a sync request, assign a job ID, and queue it via PGMQ."""
-    job_id = str(uuid4())
+    """Accept a sync request, create a sync_jobs record, and queue it via PGMQ."""
+    supabase = get_supabase_client()
+    
+    # Create the sync_job record first to get a valid DB UUID
+    response = supabase.table("sync_jobs").insert({
+        "user_id": request.user_id,
+        "spotify_playlist_id": request.spotify_playlist_id,
+        "status": "PENDING",
+        "progress_percentage": 0
+    }).execute()
+    
+    if not response.data:
+        raise RuntimeError("Failed to create sync_job record in database")
+        
+    job_id = response.data[0]["id"]
 
     payload = {
         "job_id": job_id,
-        "user_id": "pending_auth_wiring",
+        "user_id": request.user_id,
         "spotify_playlist_id": request.spotify_playlist_id,
         "target_playlist_name": request.target_playlist_name,
         "yt_search_algo": request.yt_search_algo,
@@ -51,11 +65,19 @@ async def start_sync_job(request: SyncJobRequest) -> SyncJobResponse:
         "reverse_playlist": request.reverse_playlist,
     }
 
-    supabase = get_supabase_client()
-    supabase.rpc(
-        "pgmq_send",
-        {"queue_name": "spot2tube_jobs", "message": json.dumps(payload)},
-    ).execute()
+    try:
+        supabase.rpc(
+            "pgmq_send",
+            {"queue_name": "spot2tube_jobs", "message": json.dumps(payload)},
+        ).execute()
+    except Exception as e:
+        logger.error(f"Failed to enqueue job {job_id} to PGMQ: {e}")
+        # Mark as failed in DB since we couldn't queue it
+        supabase.table("sync_jobs").update({
+            "status": "FAILED", 
+            "error_message": "Failed to enqueue job"
+        }).eq("id", job_id).execute()
+        raise
 
     logger.info(
         "Sync job queued: job_id=%s, playlist=%s", job_id, request.spotify_playlist_id

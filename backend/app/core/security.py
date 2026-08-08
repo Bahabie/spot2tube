@@ -9,7 +9,7 @@ def retrieve_decrypted_yt_headers(user_id: str) -> str:
     This bypasses RLS, so it MUST ONLY be used in the background worker.
     """
     supabase = get_supabase_client()
-    response = supabase.table("accounts").select("yt_headers").eq("userId", user_id).execute()
+    response = supabase.schema("next_auth").table("accounts").select("yt_headers").eq("userId", user_id).execute()
     
     if response.data and response.data[0].get("yt_headers"):
         return response.data[0]["yt_headers"]

@@ -22,6 +22,15 @@ async def poll_queue():
                 
             msg_id = msg.get("msg_id")
             payload = msg.get("message", {})
+            
+            # PGMQ often returns JSONB strings as Python strings if it was double-encoded
+            if isinstance(payload, str):
+                import json
+                try:
+                    payload = json.loads(payload)
+                except json.JSONDecodeError:
+                    payload = {}
+                    
             job_id = payload.get("job_id")
             
             if not job_id:

@@ -41,10 +41,11 @@ async function fetchUserPlaylists(accessToken: string): Promise<SpotifyPlaylist[
 
   // Map to safely pass optional images and cleanly extract the tracks total
   return items.map((p: any) => {
-    // If tracks is an object with total, use it. If it's a number, use it directly.
-    const count = typeof p.tracks === 'number' 
-      ? p.tracks 
-      : p.tracks?.total;
+    // Spotify's API sometimes returns 'tracks' and sometimes 'items' for the tracks collection.
+    const tracksObj = p.tracks ?? p.items;
+    const count = typeof tracksObj === 'number' 
+      ? tracksObj 
+      : tracksObj?.total;
       
     return {
       id: p.id,
@@ -141,8 +142,36 @@ export async function syncPlaylistToYouTube(
       message: error.message,
       details: error.details,
       hint: error.hint,
+      userId: session.user.id,
     });
-    throw new Error("Failed to start sync job");
+    // Let's also throw the specific message if it's a UUID error
+    if (error.code === '22P02') {
+       throw new Error(`Invalid UUID format for user_id: ${session.user.id}`);
+    }
+    throw new Error(`Failed to start sync job: ${error.message}`);
+  }
+
+  // Enqueue the job for the FastAPI worker via PGMQ
+  const payload = {
+    job_id: data.id,
+    user_id: session.user.id,
+    spotify_playlist_id: playlistId,
+    target_playlist_name: playlistName,
+    yt_search_algo: 0,
+    privacy_status: "PRIVATE",
+    reverse_playlist: true,
+  };
+
+  const { error: pgmqError } = await supabasePublic.rpc("pgmq_send", {
+    queue_name: "spot2tube_jobs",
+    message: payload, // Supabase automatically serializes JSON
+  });
+
+  if (pgmqError) {
+    console.error("[syncPlaylistToYouTube] PGMQ enqueue failed:", pgmqError);
+    // Even if enqueue fails, we might want to return the job ID or delete the row.
+    // For now, just throw an error.
+    throw new Error("Failed to queue sync job in background worker");
   }
 
   revalidatePath("/");
