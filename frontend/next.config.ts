@@ -1,6 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.spotifycdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.scdn.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'mosaic.scdn.co',
+      },
+    ],
+  },
   // Pin dev server to 127.0.0.1 so Host headers match OAuth redirect URIs.
   // This prevents macOS from resolving localhost to ::1 (IPv6) or
   // leaking 'localhost' into Host headers.

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Music2, Play, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Music2, Play, ArrowRight, Loader2 } from "lucide-react";
 import { MappedPlaylist } from "./StepSelectPlaylists";
 import { startSyncJob } from "@/features/sync-job/api";
+import { SyncJobProgress, SyncJobPlaylist } from "@/features/sync-job/components/SyncJobProgress";
 
 interface StepReviewProps {
   selectedPlaylists: MappedPlaylist[];
@@ -11,14 +12,14 @@ interface StepReviewProps {
 }
 
 export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const totalTracks = selectedPlaylists.reduce((acc, curr) => acc + (curr.tracksCount ?? 0), 0);
 
   const handleStartTransfer = async () => {
-    setIsTransferring(true);
+    setIsStarting(true);
     setError(null);
     try {
       // Enqueue a sync job for each selected playlist
@@ -27,30 +28,23 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
         await startSyncJob(playlist.id, playlist.name, 0);
       }
       
-      setCompleted(true);
-      
-      // Delay briefly to show the success state before calling onComplete 
-      // (which handles routing to the dashboard/resetting the wizard)
-      setTimeout(() => {
-        onComplete();
-      }, 2500);
+      // Instead of waiting, we immediately show the progress view which simulates tracking
+      setShowProgress(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transfer failed to start. Please try again.");
     } finally {
-      setIsTransferring(false);
+      setIsStarting(false);
     }
   };
 
-  if (completed) {
-    return (
-      <div className="w-full max-w-2xl mx-auto text-center space-y-6 py-20 animate-in zoom-in duration-500">
-        <div className="mx-auto w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center">
-          <CheckCircle2 className="w-12 h-12 text-green-500" />
-        </div>
-        <h2 className="text-4xl font-bold text-white">Migration Started!</h2>
-        <p className="text-gray-400">Your playlists are now being synced in the background. Check your dashboard for tracking.</p>
-      </div>
-    );
+  if (showProgress) {
+    const syncPlaylists: SyncJobPlaylist[] = selectedPlaylists.map(p => ({
+      id: p.id,
+      name: p.name,
+      image: p.images?.[0]?.url,
+      tracksCount: p.tracksCount ?? 0,
+    }));
+    return <SyncJobProgress playlists={syncPlaylists} onComplete={onComplete} />;
   }
 
   return (
@@ -99,11 +93,11 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
         <div className="mt-12 flex justify-center">
           <button
             onClick={handleStartTransfer}
-            disabled={isTransferring}
+            disabled={isStarting}
             className="flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-[#1DB954] to-[#1ED760] hover:scale-105 disabled:hover:scale-100 disabled:opacity-70 text-black font-extrabold text-lg rounded-full transition-all shadow-[0_0_20px_rgba(29,185,84,0.4)]"
           >
-            {isTransferring ? (
-              <><Loader2 className="w-6 h-6 animate-spin" /> Transferring...</>
+            {isStarting ? (
+              <><Loader2 className="w-6 h-6 animate-spin" /> Starting...</>
             ) : (
               "Start Transfer"
             )}
