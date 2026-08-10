@@ -2,7 +2,6 @@
 
 import json
 import logging
-from uuid import uuid4
 
 from fastapi import APIRouter, status
 from pydantic import BaseModel

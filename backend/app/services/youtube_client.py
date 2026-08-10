@@ -38,7 +38,9 @@ class YouTubeClientService:
                           ytmusicapi's setup helpers, stored encrypted
                           in the database and decrypted by the caller.
         """
-        self.yt: YTMusic = YTMusic(auth=auth_headers)
+        self.yt: YTMusic = YTMusic()
+        import json
+        self._raw_headers = json.loads(auth_headers) if auth_headers else {}
 
     # ------------------------------------------------------------------
     # Playlist creation
@@ -71,20 +73,28 @@ class YouTubeClientService:
         """
         exception_sleep: int = _INITIAL_BACKOFF_SECS
 
+        # Extract raw headers to use with httpx
+        import httpx
+        headers = self._raw_headers
+        
+        url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status"
+        payload = {
+            "snippet": {
+                "title": title,
+                "description": description
+            },
+            "status": {
+                "privacyStatus": privacy_status.lower()
+            }
+        }
+
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
-                raw_result: str | dict = self.yt.create_playlist(
-                    title=title,
-                    description=description,
-                    privacy_status=privacy_status,
-                )
-                # ytmusicapi returns either a bare ID string or a dict
-                # containing the ID under the "playlistId" key.
-                playlist_id: str = (
-                    raw_result
-                    if isinstance(raw_result, str)
-                    else raw_result["playlistId"]
-                )
+                with httpx.Client() as client:
+                    res = client.post(url, headers=headers, json=payload)
+                    res.raise_for_status()
+                    playlist_id = res.json()["id"]
+
                 logger.info(
                     "Playlist '%s' created on attempt %d/%d (id=%s)",
                     title,
@@ -263,13 +273,25 @@ class YouTubeClientService:
         """
         exception_sleep: int = _INITIAL_BACKOFF_SECS
 
+        import httpx
+        headers = self._raw_headers
+        url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet"
+        payload = {
+            "snippet": {
+                "playlistId": playlist_id,
+                "resourceId": {
+                    "kind": "youtube#video",
+                    "videoId": video_id
+                }
+            }
+        }
+
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
-                self.yt.add_playlist_items(
-                    playlistId=playlist_id,
-                    videoIds=[video_id],
-                    duplicates=False,
-                )
+                with httpx.Client() as client:
+                    res = client.post(url, headers=headers, json=payload)
+                    res.raise_for_status()
+
                 logger.info(
                     "Track %s added to playlist %s on attempt %d/%d",
                     video_id,

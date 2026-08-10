@@ -11,7 +11,7 @@ async def fetch_playlist_tracks(
     Fetches all tracks from a Spotify playlist, handling pagination
     and 429 Retry-After rate limits.
     """
-    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/items"
     headers = {"Authorization": f"Bearer {access_token}"}
     tracks = []
 
@@ -29,14 +29,14 @@ async def fetch_playlist_tracks(
             data = response.json()
 
             for item in data.get("items", []):
-                track = item.get("track")
-                if track:
+                # The /items endpoint returns track data in the "item" key
+                track = item.get("item")
+                # Ensure it's actually a track and not a podcast episode, etc.
+                if track and track.get("type") == "track":
                     tracks.append(
                         {
                             "name": track.get("name"),
-                            "artist": track["artists"][0]["name"]
-                            if track.get("artists")
-                            else "Unknown",
+                            "artist": track.get("artists", [{}])[0].get("name", "Unknown") if track.get("artists") else "Unknown",
                             "album": track.get("album", {}).get("name"),
                             "isrc": track.get("external_ids", {}).get("isrc"),
                         }

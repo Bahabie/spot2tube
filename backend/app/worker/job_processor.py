@@ -12,6 +12,8 @@ async def poll_queue():
     print(f"Starting worker. Polling queue: {QUEUE_NAME}")
     
     while True:
+        msg_id = None
+        job_id = None
         try:
             # Read message, hide it for 300 seconds (5 mins visibility timeout)
             msg = read_message(QUEUE_NAME, vt=300)
@@ -54,10 +56,18 @@ async def poll_queue():
                 
         except Exception as e:
             # Catastrophic failures from the handler land here.
-            # The message is NOT deleted, so PGMQ will re-surface it
-            # after the 300-second visibility timeout expires.
-            print(f"Unexpected error in worker loop: {e}")
-            await asyncio.sleep(5)
+            import httpx
+            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 403:
+                print(f"Job {job_id} failed with permanent 403 Forbidden. Marking as FAILED.")
+                if job_id:
+                    supabase.table("sync_jobs").update({"status": "FAILED"}).eq("id", job_id).execute()
+                if msg_id:
+                    delete_message(QUEUE_NAME, msg_id)
+            else:
+                # The message is NOT deleted, so PGMQ will re-surface it
+                # after the 300-second visibility timeout expires.
+                print(f"Unexpected error in worker loop: {e}")
+                await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(poll_queue())

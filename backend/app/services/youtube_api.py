@@ -1,6 +1,5 @@
 import httpx
 import asyncio
-from typing import Optional
 
 async def add_video_to_playlist(access_token: str, playlist_id: str, video_id: str) -> bool:
     """

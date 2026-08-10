@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from app.db.supabase import get_supabase_client
 
 supabase = get_supabase_client()

@@ -29,8 +29,8 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   }, [step]);
 
   useEffect(() => {
-    // Hydrate playlists from localStorage if they exist
-    const saved = localStorage.getItem("sync_wizard_playlists");
+    // Hydrate playlists from sessionStorage if they exist
+    const saved = sessionStorage.getItem("sync_wizard_playlists");
     if (saved) {
       try {
         setSelectedPlaylists(JSON.parse(saved));
@@ -56,7 +56,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
 
   const handlePlaylistsNext = (playlists: MappedPlaylist[]) => {
     setSelectedPlaylists(playlists);
-    localStorage.setItem("sync_wizard_playlists", JSON.stringify(playlists));
+    sessionStorage.setItem("sync_wizard_playlists", JSON.stringify(playlists));
     setStep(4);
   };
 
@@ -67,8 +67,8 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   };
 
   const handleComplete = () => {
-    // Clear local storage and reset wizard or redirect to a dashboard
-    localStorage.removeItem("sync_wizard_playlists");
+    // Clear session storage and reset wizard or redirect to a dashboard
+    sessionStorage.removeItem("sync_wizard_playlists");
     setSelectedPlaylists([]);
     setStep(1); // or stay on step 5, or show the progress bar page
     router.push("/");
