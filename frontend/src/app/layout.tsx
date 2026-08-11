@@ -1,7 +1,10 @@
-import { Outfit } from "next/font/google";
+import { Space_Grotesk, Inter } from "next/font/google";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
   title: "Spot2Tube Sync",
@@ -14,9 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={outfit.variable}>
-      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/30">
-        {children}
+    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/30 flex flex-col">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

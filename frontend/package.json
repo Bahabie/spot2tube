@@ -10,9 +10,11 @@
     "test": "jest"
   },
   "dependencies": {
+    "@auth/core": "^0.41.3",
     "@auth/supabase-adapter": "^1.7.4",
     "@supabase/supabase-js": "^2.49.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
     "lucide-react": "^1.26.0",
     "next": "^15.3.0",
     "next-auth": "5.0.0-beta.25",
@@ -29,5 +31,6 @@
     "eslint-config-next": "^15.3.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { Music, LogOut, ChevronDown } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface UserMenuProps {
   name: string;
@@ -44,41 +45,46 @@ export function UserMenu({ name, image }: UserMenuProps) {
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex items-center gap-3 bg-white/5 py-2 px-4 rounded-full border border-white/10 hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+        className="flex items-center justify-center gap-1.5 bg-black/50 hover:bg-white/[0.08] hover:scale-105 transition-all duration-200 p-1 pr-2 rounded-full cursor-pointer"
       >
         {image ? (
-          <img src={image} alt="Avatar" className="w-8 h-8 rounded-full" />
+          <img src={image} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <Music className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+            <Music className="w-3.5 h-3.5 text-white" />
           </div>
         )}
-        <span className="text-sm font-medium">{name}</span>
         <ChevronDown
-          className={`w-4 h-4 text-white/50 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`w-3.5 h-3.5 text-white/70 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          aria-labelledby="user-menu-button"
-          className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-[#1a1a2e]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-        >
-          <div className="px-4 py-3 border-b border-white/10">
-            <p className="text-sm font-medium text-white truncate">{name}</p>
-            <p className="text-xs text-gray-400">Signed in</p>
-          </div>
-          <button
-            role="menuitem"
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-150 cursor-pointer"
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="menu"
+            aria-labelledby="user-menu-button"
+            className="absolute right-0 mt-2 w-48 rounded-xl bg-[#0A0A0B]/80 backdrop-blur-2xl ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden z-50"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
-        </div>
-      )}
+            <div className="p-4 border-b border-white/5">
+              <p className="text-[#F3F4F6] text-sm font-medium truncate">{name}</p>
+              <p className="text-zinc-500 text-xs mt-0.5">Signed in</p>
+            </div>
+            <button
+              role="menuitem"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="flex items-center gap-3 w-full p-3 text-sm text-zinc-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 ease-in-out cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
