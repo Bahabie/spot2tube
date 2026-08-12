@@ -9,12 +9,8 @@ export function FinalCtaBanner() {
 
   return (
     <section className="w-full px-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.7 }}
-        className="max-w-5xl mx-auto rounded-[2.5rem] my-24 p-12 text-center relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl ring-1 ring-purple-500/20 shadow-[0_0_80px_rgba(168,85,247,0.05)]"
+      <div 
+        className="max-w-5xl mx-auto rounded-[2.5rem] mt-4 mb-24 p-12 text-center relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl ring-1 ring-purple-500/20 shadow-[0_0_80px_rgba(168,85,247,0.05)]"
       >
         {/* Breathing Gradient Aura */}
         <motion.div 
@@ -32,17 +28,9 @@ export function FinalCtaBanner() {
 
         {/* Content */}
         <div className="flex flex-col items-center relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-white/[0.05] ring-1 ring-white/10 flex items-center justify-center mb-6 shadow-xl">
+          <div className="w-12 h-12 rounded-2xl bg-white/[0.05] ring-1 ring-white/10 flex items-center justify-center mb-8 shadow-xl">
             <Gem className="w-6 h-6 text-purple-400" />
           </div>
-          
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#F3F4F6] font-['Cabinet_Grotesk',sans-serif] tracking-tighter mb-4">
-            BECOME PREMIUM
-          </h2>
-          
-          <p className="text-zinc-400 text-lg mb-10 font-['Satoshi',sans-serif]">
-            Transfer all your music with one simple click
-          </p>
 
           {/* Interactive Pricing Toggle */}
           <div className="flex items-center justify-center gap-4 mb-8 font-['Satoshi',sans-serif]">
@@ -78,7 +66,7 @@ export function FinalCtaBanner() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

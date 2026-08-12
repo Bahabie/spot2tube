@@ -1,75 +1,43 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Check, Gem } from "lucide-react";
 import { useState } from "react";
 import { FeatureCarousel } from "./components/FeatureCarousel";
-import { FinalCtaBanner } from "./components/FinalCtaBanner";
 
 export default function PlansPage() {
   const [isAnnual, setIsAnnual] = useState(true);
-
-  // Framer Motion Variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    show: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
-        type: "spring", 
-        stiffness: 70, 
-        damping: 20 
-      } 
-    },
-  };
 
   return (
     <div className="bg-[#0A0A0B]">
       {/* Phase 1: Hero & Pricing Cards */}
       <section className="flex flex-col items-center pt-24 pb-8 overflow-hidden">
-        <motion.div 
+        <div 
           className="w-full flex flex-col items-center"
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
         >
           {/* Hero Typography */}
-          <motion.h1 
-            variants={itemVariants}
+          <h1 
             className="text-5xl md:text-6xl font-extrabold text-[#F3F4F6] text-center tracking-tighter mb-4 font-['Cabinet_Grotesk',sans-serif]"
           >
             Your Music Will Always Be With You
-          </motion.h1>
+          </h1>
           
-          <motion.p 
-            variants={itemVariants}
+          <p 
             className="text-zinc-400 text-lg text-center max-w-2xl mb-16 font-['Satoshi',sans-serif]"
           >
             Transfer your music, auto synchronize your playlists, share music across different platforms - we got you all covered
-          </motion.p>
+          </p>
 
           {/* Pricing Cards Grid */}
-          <motion.div 
+          <div 
             className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-6"
           >
             {/* Card 1: FREE TRIAL */}
-            <motion.div 
-              variants={itemVariants}
+            <div 
               className="bg-white/[0.02] backdrop-blur-2xl ring-1 ring-inset ring-white/10 rounded-3xl p-8 flex flex-col font-['Satoshi',sans-serif]"
             >
               <h3 className="font-bold uppercase text-zinc-300 mb-6 tracking-wide">FREE TRIAL</h3>
               
-              <ul className="space-y-4 mb-8 flex-1">
+              <ul className="space-y-4 mb-8">
                 {[
                   "Transfer up to 500 songs for free",
                   "Share music across all music platforms",
@@ -84,14 +52,17 @@ export default function PlansPage() {
                 ))}
               </ul>
 
-              <button className="bg-transparent hover:bg-white/[0.05] ring-1 ring-inset ring-white/10 text-white rounded-xl py-3 w-full transition-all mt-auto font-medium">
-                Try it for free
-              </button>
-            </motion.div>
+              <div className="mt-auto flex flex-col">
+                <button className="bg-transparent hover:bg-white/[0.05] ring-1 ring-inset ring-white/10 text-white rounded-xl py-3 w-full transition-all font-medium">
+                  Try it for free
+                </button>
+                {/* Invisible spacer to match the height of 'Cancel anytime' in the Premium card */}
+                <div className="h-[20px] mt-4" aria-hidden="true"></div>
+              </div>
+            </div>
 
             {/* Card 2: PREMIUM */}
-            <motion.div 
-              variants={itemVariants}
+            <div 
               className="relative bg-white/[0.02] bg-gradient-to-b from-purple-500/10 to-transparent hover:from-purple-500/15 backdrop-blur-2xl ring-1 ring-inset ring-purple-500/30 transition-colors duration-500 rounded-3xl p-8 flex flex-col font-['Satoshi',sans-serif] shadow-[0_0_40px_rgba(168,85,247,0.05)]"
             >
               <div className="flex items-center gap-2 mb-6">
@@ -99,7 +70,7 @@ export default function PlansPage() {
                 <h3 className="font-bold uppercase bg-gradient-to-r from-purple-400 to-indigo-500 bg-clip-text text-transparent tracking-wide">PREMIUM</h3>
               </div>
 
-              <ul className="space-y-4 mb-8 flex-1">
+              <ul className="space-y-4 mb-8">
                 {[
                   "Unlimited music transfer",
                   "Share music across all music platforms",
@@ -114,7 +85,7 @@ export default function PlansPage() {
                 ))}
               </ul>
 
-              <div className="mt-auto">
+              <div>
                 {/* Billing Toggle */}
                 <div className="flex items-center justify-end gap-3 mb-6">
                   <span className={`text-sm ${isAnnual ? "text-white" : "text-zinc-500"}`}>Annually</span>
@@ -134,23 +105,22 @@ export default function PlansPage() {
                     {isAnnual ? "$2 / Month" : "$4 / Month"}
                   </div>
                 </div>
+              </div>
 
-                {/* CTA */}
+              {/* CTA */}
+              <div className="mt-auto flex flex-col">
                 <button className="bg-[#1DB954] hover:bg-[#1ed760] text-black rounded-xl py-3 w-full transition-all hover:shadow-[0_0_20px_rgba(29,185,84,0.3)] font-bold">
                   Get Premium
                 </button>
-                <p className="text-sm text-zinc-400 text-center mt-4 font-['Satoshi',sans-serif]">Cancel anytime</p>
+                <p className="text-sm text-zinc-400 text-center mt-4 font-['Satoshi',sans-serif] h-[20px] leading-[20px]">Cancel anytime</p>
               </div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Phase 2: Included in Premium (Value Proposition) */}
       <FeatureCarousel />
-
-      {/* Phase 3: Final CTA Banner */}
-      <FinalCtaBanner />
     </div>
   );
 }

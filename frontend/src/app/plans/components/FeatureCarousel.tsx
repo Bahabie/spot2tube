@@ -42,16 +42,11 @@ export function FeatureCarousel() {
   return (
     <section className="w-full pt-4 pb-8">
       <div className="w-full px-6 md:px-12 xl:px-24 flex items-center justify-between mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div>
           <h2 className="text-3xl md:text-4xl font-extrabold text-[#F3F4F6] font-['Cabinet_Grotesk',sans-serif] tracking-tighter">
             Included in Premium
           </h2>
-        </motion.div>
+        </div>
 
         {/* Carousel Navigation Buttons */}
         <div className="hidden md:flex items-center gap-4">

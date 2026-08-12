@@ -13,11 +13,7 @@ export interface Feature {
 export function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
-      viewport={{ once: true, amount: 0.1 }}
-      transition={{ duration: 0.5, delay: index * 0.15 }}
       className="group relative bg-white/[0.02] backdrop-blur-2xl ring-1 ring-inset ring-white/10 rounded-3xl p-8 overflow-hidden transition-all duration-500 hover:ring-white/20 flex flex-col w-[85vw] sm:w-[350px] md:w-[400px] shrink-0 snap-center"
     >
       {/* Luxurious Purple/Indigo Ambient Glow */}

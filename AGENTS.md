@@ -220,6 +220,21 @@ dependencies.py  models/
 - React components: function declarations (`function Component()`) not arrow functions for top-level components.
 - Prefer Server Components. Use `'use client'` only when client interactivity is required.
 
+### 4.5 UI/UX & Styling Guidelines
+
+**Dark Glassmorphism Design System:**
+- **Base Background:** Deep space black `#0A0A0B`.
+- **Standard Cards:** Use `bg-white/[0.02] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl`.
+- **Premium Cards:** Inject purple/indigo ambient glows (e.g., `bg-gradient-to-b from-purple-500/10`, `ring-purple-500/30`, `shadow-[0_0_40px_rgba(168,85,247,0.05)]`).
+
+**Layout & Grid Alignment (Anti-Squish Policy):**
+- **Spacious Proportions:** Never squish major UI cards. Maintain generous internal padding (`p-8`).
+- **Button Alignment in Grids:** When cards in a grid have different content (e.g., one has a toggle and extra text at the bottom), decouple the bottom elements using `mt-auto flex flex-col`. Use invisible spacer divs (e.g., `<div className="h-[20px] mt-4" aria-hidden="true"></div>`) in the shorter card to perfectly align CTA buttons horizontally.
+
+**Animations (Framer Motion):**
+- **No Entry Delays:** Do **NOT** use `initial`, `animate="show"`, or `whileInView` on core content (like pricing cards or headlines). All text and structural content must load instantly and statically to prevent user fatigue.
+- **Interactive Only:** Limit `framer-motion` to hover physics (`whileHover={{ y: -5 }}`, `whileTap`), micro-interactions, or infinite ambient background loops (breathing auras).
+
 ---
 
 ## 5. Testing & Quality Checks
