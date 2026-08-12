@@ -10,15 +10,12 @@ export async function Header() {
     <header className="sticky top-0 z-50 w-full flex items-center justify-between px-6 py-5 bg-[#0A0A0B]/80 backdrop-blur-md border-b border-white/[0.02]">
       {/* Left Side: Brand Logo */}
       <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-        <div className="p-2 bg-gradient-to-br from-primary to-blue-600 rounded-xl shadow-[0_0_15px_rgba(29,185,84,0.3)]">
-          <RefreshCw className="w-5 h-5 text-white" />
+        <div className="p-2 bg-white/[0.02] backdrop-blur-md ring-1 ring-white/10 rounded-xl">
+          <RefreshCw className="w-5 h-5 text-gray-200 drop-shadow-[0_0_8px_rgba(0,229,123,0.5)]" />
         </div>
-        <h1 
-          className="text-xl font-bold tracking-tight flex items-center" 
-          style={{ fontFamily: '"Cabinet Grotesk", sans-serif' }}
-        >
-          <span className="text-[#F3F4F6]">Spot2Tube</span>
-          <span className="text-[#1DB954]">Sync</span>
+        <h1 className="text-xl font-cabinet font-extrabold tracking-tighter flex items-center">
+          <span className="text-gray-100">Spot2Tube</span>
+          <span className="text-[#00E57B]">Sync</span>
         </h1>
       </Link>
       
