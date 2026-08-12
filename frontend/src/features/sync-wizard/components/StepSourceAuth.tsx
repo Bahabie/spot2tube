@@ -31,14 +31,14 @@ export function StepSourceAuth({ onNext, isAuthenticated }: StepSourceAuthProps)
     >
       <div className="text-center space-y-6 relative">
         <div className="inline-block mb-2">
-          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md">
+          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md font-satoshi">
             STEP 2/5 • CONNECT
           </span>
         </div>
-        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm">
+        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm font-cabinet">
           Transfer your music from <span className="text-[#1DB954] drop-shadow-[0_0_25px_rgba(29,185,84,0.3)]">Spotify</span>
         </h1>
-        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto">
+        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
           Connect your account securely or use a public playlist URL to proceed.
         </p>
       </div>

@@ -1,8 +1,10 @@
 """Spotify Client."""
 
 import asyncio
+
 from app.services.auth_service import get_valid_token
 from app.services.spotify_api import fetch_playlist_tracks
+
 
 def get_spotify_playlist_metadata(user_id: str, playlist_id: str) -> list[tuple[str, str, str]]:
     """Fetch Spotify playlist metadata and return list of tuples (name, artist, album)."""

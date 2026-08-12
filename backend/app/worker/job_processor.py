@@ -1,73 +1,83 @@
 import asyncio
+import logging
 
-from app.db.pgmq import read_message, delete_message
+from app.db.pgmq import delete_message, read_message
 from app.db.supabase import get_supabase_client
 from app.worker.task_handlers import process_playlist_sync_job
+
+logger = logging.getLogger(__name__)
 
 QUEUE_NAME = "spot2tube_jobs"
 supabase = get_supabase_client()
 
 async def poll_queue():
     """Continuously polls PGMQ for new sync jobs."""
-    print(f"Starting worker. Polling queue: {QUEUE_NAME}")
-    
+    logger.info("Starting worker. Polling queue: %s", QUEUE_NAME)
+
     while True:
         msg_id = None
         job_id = None
         try:
             # Read message, hide it for 300 seconds (5 mins visibility timeout)
             msg = read_message(QUEUE_NAME, vt=300)
-            
+
             if not msg:
                 await asyncio.sleep(2)  # Idle wait
                 continue
-                
+
             msg_id = msg.get("msg_id")
             payload = msg.get("message", {})
-            
-            # PGMQ often returns JSONB strings as Python strings if it was double-encoded
+
+            # PGMQ sometimes returns JSONB as a Python string (double-encoded).
             if isinstance(payload, str):
                 import json
                 try:
                     payload = json.loads(payload)
                 except json.JSONDecodeError:
                     payload = {}
-                    
+
             job_id = payload.get("job_id")
-            
+
             if not job_id:
-                print(f"Message {msg_id} missing job_id. Deleting.")
+                logger.warning("Message %s missing job_id. Deleting.", msg_id)
                 delete_message(QUEUE_NAME, msg_id)
                 continue
-                
-            print(f"Picked up job {job_id} (msg_id {msg_id})")
-            
-            # Mark job as PROCESSING
+
+            logger.info("Picked up job %s (msg_id %s)", job_id, msg_id)
+
+            # Mark job as PROCESSING in DB
             supabase.table("sync_jobs").update({"status": "PROCESSING"}).eq("id", job_id).execute()
-            
-            # Execute sync — process_playlist_sync_job is synchronous and
-            # raises on catastrophic failure (allowing PGMQ visibility
-            # timeout to requeue the message).
+
+            # Execute sync — raises on catastrophic failure.
             process_playlist_sync_job(payload)
-            
-            print(f"Job {job_id} completed successfully.")
+
+            logger.info("Job %s completed successfully.", job_id)
             supabase.table("sync_jobs").update({"status": "COMPLETED"}).eq("id", job_id).execute()
             delete_message(QUEUE_NAME, msg_id)
-                
+
         except Exception as e:
-            # Catastrophic failures from the handler land here.
-            import httpx
-            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 403:
-                print(f"Job {job_id} failed with permanent 403 Forbidden. Marking as FAILED.")
-                if job_id:
-                    supabase.table("sync_jobs").update({"status": "FAILED"}).eq("id", job_id).execute()
-                if msg_id:
+            error_msg = f"{type(e).__name__}: {e}"
+            logger.critical("Job %s failed: %s", job_id, error_msg, exc_info=True)
+
+            # Always mark the job as FAILED so the UI reflects reality.
+            if job_id:
+                try:
+                    supabase.table("sync_jobs").update({
+                        "status": "FAILED",
+                        "error_message": error_msg[:500],
+                    }).eq("id", job_id).execute()
+                except Exception as db_err:  # noqa: BLE001
+                    logger.error("Could not update job %s to FAILED: %s", job_id, db_err)
+
+            # Delete the message so PGMQ doesn't keep redelivering a broken job.
+            if msg_id:
+                try:
                     delete_message(QUEUE_NAME, msg_id)
-            else:
-                # The message is NOT deleted, so PGMQ will re-surface it
-                # after the 300-second visibility timeout expires.
-                print(f"Unexpected error in worker loop: {e}")
-                await asyncio.sleep(5)
+                except Exception as del_err:  # noqa: BLE001
+                    logger.error("Could not delete msg %s: %s", msg_id, del_err)
+
+            # Brief pause before continuing the poll loop.
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(poll_queue())

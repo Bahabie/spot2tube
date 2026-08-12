@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrackList, TrackItem } from "./TrackList";
+import { getPlaylistTracks } from "@/features/spotify/actions";
+import { getJobsProgress } from "../api";
 
 export interface SyncJobPlaylist {
   id: string;
@@ -12,6 +14,7 @@ export interface SyncJobPlaylist {
   image?: string;
   tracksCount: number;
   tracks?: TrackItem[];
+  jobId?: string;
 }
 
 interface SyncJobProgressProps {
@@ -21,30 +24,78 @@ interface SyncJobProgressProps {
 
 export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps) {
   const [processedTracks, setProcessedTracks] = useState(0);
+  const [failedTracks, setFailedTracks] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [isActuallyComplete, setIsActuallyComplete] = useState(false);
+  const [fetchedTracks, setFetchedTracks] = useState<Record<string, TrackItem[]>>({});
   
   const totalTracks = playlists.reduce((acc, curr) => acc + curr.tracksCount, 0);
-  const isComplete = totalTracks > 0 && processedTracks >= totalTracks;
+  const isComplete = totalTracks > 0 && processedTracks >= totalTracks && isActuallyComplete;
+
+  // Stringify for stable useEffect dependencies
+  const playlistIds = playlists.map(p => p.id).join(',');
+  const jobIds = playlists.map(p => p.jobId).filter(Boolean).join(',');
 
   useEffect(() => {
-    // Simulate progress
-    if (processedTracks < totalTracks) {
-      const timer = setInterval(() => {
-        setProcessedTracks((prev) => {
-          const increment = Math.ceil(totalTracks / 20); // Finish in ~20 ticks
-          const next = prev + increment;
-          if (next >= totalTracks) {
-            clearInterval(timer);
-            // Bug Fix: DO NOT call onComplete() here automatically.
-            // Wait for user to click "Start New Transfer"
-            return totalTracks;
-          }
-          return next;
-        });
-      }, 300);
-      return () => clearInterval(timer);
+    if (!playlistIds) return;
+    
+    // Fetch actual tracks for each playlist
+    playlists.forEach(async (p) => {
+      try {
+        const t = await getPlaylistTracks(p.id);
+        const mapped: TrackItem[] = t.map((track) => ({
+          id: track.id,
+          name: track.name,
+          artist: track.artist,
+          albumArt: track.albumArt,
+          status: "pending"
+        }));
+        setFetchedTracks(prev => ({ ...prev, [p.id]: mapped }));
+      } catch (e) {
+        console.error("Failed to fetch tracks for", p.name, e);
+      }
+    });
+  }, [playlistIds]);
+
+  useEffect(() => {
+    if (!jobIds) {
+       setIsActuallyComplete(true);
+       return;
     }
-  }, [processedTracks, totalTracks]);
+    
+    const idsArray = jobIds.split(',');
+
+    const interval = setInterval(async () => {
+      try {
+        const data = await getJobsProgress(idsArray);
+        
+        if (data && data.length > 0) {
+          let currentProcessed = 0;
+          let currentFailed = 0;
+
+          data.forEach(job => {
+            currentProcessed += (job.processed_tracks || 0);
+            currentFailed += (job.failed_tracks || 0);
+          });
+
+          setProcessedTracks(currentProcessed);
+          setFailedTracks(currentFailed);
+
+          const allCompleted = data.every(job => job.status === 'COMPLETED' || job.status === 'FAILED');
+          if (allCompleted) {
+            setIsActuallyComplete(true);
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll jobs:", err);
+      }
+    }, 2000); // poll every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, [jobIds]);
+
+
 
   const toggleExpand = (id: string) => {
     const newSet = new Set(expandedCards);
@@ -89,10 +140,10 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
           </div>
         </div>
 
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm font-cabinet">
           {isComplete ? "Transfer Complete!" : "Transferring Music"}
         </h1>
-        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto">
+        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
           {isComplete ? "Your playlists have been successfully synced to YouTube Music." : "Lay back while we securely transfer your playlists."}
         </p>
       </div>
@@ -147,8 +198,8 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
               </motion.div>
               
               <div className="text-center z-10 bg-transparent">
-                <h2 className="text-3xl font-bold text-[#F3F4F6] bg-transparent">Successfully Transferred</h2>
-                <p className="text-sm text-[#A1A1AA] mt-2 bg-transparent">You can review the synced tracks below.</p>
+                <h2 className="text-3xl font-bold text-[#F3F4F6] bg-transparent font-cabinet">Successfully Transferred</h2>
+                <p className="text-sm text-[#A1A1AA] mt-2 bg-transparent font-satoshi">You can review the synced tracks below.</p>
               </div>
               
               <button
@@ -183,20 +234,21 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
             {playlists.map((playlist) => {
               const isExpanded = expandedCards.has(playlist.id);
               const playlistFraction = totalTracks > 0 ? playlist.tracksCount / totalTracks : 0;
-              const simulatedPlaylistProcessed = isComplete ? playlist.tracksCount : Math.min(playlist.tracksCount, Math.floor(processedTracks * playlistFraction));
+              const playlistProcessed = isComplete ? playlist.tracksCount : Math.min(playlist.tracksCount, Math.floor(processedTracks * playlistFraction));
+              const playlistFailed = isComplete ? 0 : Math.min(playlist.tracksCount - playlistProcessed, Math.floor(failedTracks * playlistFraction));
               
-              const fallbackTracks: TrackItem[] = Array.from({ length: Math.min(20, playlist.tracksCount || 20) }).map((_, i) => {
-                const isProcessed = i < simulatedPlaylistProcessed;
-                const isFailed = isProcessed && i % 15 === 14; 
-                return {
-                  id: `${playlist.id}-fallback-${i}`,
-                  name: `Simulated Track ${i + 1}`,
-                  artist: `Simulated Artist ${i + 1}`,
-                  status: isProcessed ? (isFailed ? "failed" : "success") : "pending",
-                };
-              });
+              const rawTracks = fetchedTracks[playlist.id] || [];
 
-              const realTracks = playlist.tracks && playlist.tracks.length > 0 ? playlist.tracks : fallbackTracks;
+              // Map statuses based on the DB progress sequential offset
+              const realTracks = rawTracks.map((rt, i) => {
+                let status: "pending" | "success" | "failed" = "pending";
+                if (i < playlistProcessed) {
+                  status = "success";
+                } else if (i < playlistProcessed + playlistFailed) {
+                  status = "failed";
+                }
+                return { ...rt, status };
+              });
 
               return (
                 <div 
@@ -224,14 +276,14 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
                         </div>
                       )}
                       <div>
-                        <h4 className="text-[#F3F4F6] font-semibold text-lg">{playlist.name}</h4>
-                        <p className="text-sm text-[#A1A1AA]">{playlist.tracksCount} tracks</p>
+                        <h4 className="text-[#F3F4F6] font-semibold text-lg font-cabinet">{playlist.name}</h4>
+                        <p className="text-sm text-[#A1A1AA] font-satoshi">{playlist.tracksCount} tracks</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-6">
                       <span className="text-[#A1A1AA] font-medium text-sm">
-                        {simulatedPlaylistProcessed} / {playlist.tracksCount}
+                        {playlistProcessed} / {playlist.tracksCount}
                       </span>
                       <button className="p-2 hover:bg-white/5 rounded-full transition-colors text-[#A1A1AA]">
                         {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}

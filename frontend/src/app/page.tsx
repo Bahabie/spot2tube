@@ -30,9 +30,9 @@ export default async function Home() {
 
   return (
     <main className="flex-1 p-8 md:p-16 max-w-5xl mx-auto space-y-12 w-full">
-      <SyncWizard 
-        spotifyLinked={spotifyLinked} 
-        googleLinked={googleLinked} 
+      <SyncWizard
+        spotifyLinked={spotifyLinked}
+        googleLinked={googleLinked}
       />
     </main>
   );

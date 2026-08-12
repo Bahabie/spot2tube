@@ -2,6 +2,7 @@
 
 from app.db.supabase import get_supabase_client
 
+
 def retrieve_decrypted_yt_headers(user_id: str) -> str:
     """
     Retrieve decrypted YouTube Music headers using the Supabase SERVICE_ROLE key.

@@ -6,7 +6,6 @@ export interface FaqItem {
 export interface FaqCategory {
   id: string;
   title: string;
-  icon: string;
   items: FaqItem[];
 }
 
@@ -14,7 +13,6 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
   {
     id: "general",
     title: "General",
-    icon: "💬",
     items: [
       {
         question: "What is Spot2Tube-sync?",
@@ -61,7 +59,6 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
   {
     id: "premium",
     title: "Premium Plan",
-    icon: "💎",
     items: [
       {
         question: "How do I purchase Spot2Tube-sync Premium?",

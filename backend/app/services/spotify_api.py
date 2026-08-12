@@ -29,8 +29,8 @@ async def fetch_playlist_tracks(
             data = response.json()
 
             for item in data.get("items", []):
-                # The /items endpoint returns track data in the "item" key
-                track = item.get("item")
+                # Spotify API may return track data in "track" or "item" key depending on the endpoint/playlist
+                track = item.get("track") or item.get("item")
                 # Ensure it's actually a track and not a podcast episode, etc.
                 if track and track.get("type") == "track":
                     tracks.append(

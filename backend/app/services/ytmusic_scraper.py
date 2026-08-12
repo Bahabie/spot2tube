@@ -1,37 +1,60 @@
-from typing import Optional
+"""ISRC-based YouTube video ID cache lookup.
+
+Checks the track_mappings table for a cached videoId before falling back
+to a ytmusicapi search. Auth headers are loaded from ytmusic_auth for
+authenticated search requests.
+"""
+
+
 from ytmusicapi import YTMusic
+
 from app.db.supabase import get_supabase_client
 
-supabase = get_supabase_client()
-ytmusic = YTMusic()
 
-def get_youtube_video_id(isrc: str, track_name: str, artist_name: str) -> Optional[str]:
+def get_youtube_video_id(
+    track_name: str,
+    artist_name: str,
+    isrc: str | None = None,
+    auth_headers: dict | None = None,
+) -> str | None:
+    """Look up a YouTube Video ID, with ISRC cache.
+
+    Args:
+        track_name:   Track title to search for.
+        artist_name:  Primary artist name.
+        isrc:         Optional ISRC code for cache lookup.
+        auth_headers: Optional ytmusicapi headers dict for authenticated search.
+
+    Returns:
+        YouTube video ID string, or None if not found.
     """
-    Looks up a YouTube Video ID.
-    1. Checks `track_mappings` table for a cache hit via ISRC.
-    2. Falls back to ytmusicapi search and inserts cache.
-    """
+    supabase = get_supabase_client()
+
     if isrc:
-        # Check Cache
-        response = supabase.table("track_mappings").select("youtube_video_id").eq("isrc", isrc).execute()
+        response = (
+            supabase.table("track_mappings")
+            .select("youtube_video_id")
+            .eq("isrc", isrc)
+            .execute()
+        )
         if response.data:
             return response.data[0].get("youtube_video_id")
-            
-    # Cache Miss -> Scrape YT Music
+
+    # Cache miss — search via ytmusicapi.
+    yt = YTMusic(auth=auth_headers) if auth_headers else YTMusic()
     query = f"{track_name} {artist_name}"
-    search_results = ytmusic.search(query, filter="songs", limit=1)
-    
+
+    search_results = yt.search(query, filter="songs", limit=1)
     if not search_results:
-        search_results = ytmusic.search(query, filter="videos", limit=1)
-        
+        search_results = yt.search(query, filter="videos", limit=1)
+
     if search_results:
         video_id = search_results[0].get("videoId")
         if video_id and isrc:
-            # Cache the result for future runs
             supabase.table("track_mappings").insert({
                 "isrc": isrc,
                 "youtube_video_id": video_id
             }).execute()
         return video_id
-        
+
     return None

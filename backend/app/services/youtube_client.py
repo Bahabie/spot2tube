@@ -4,13 +4,15 @@ Provides a stateless, class-based interface over ytmusicapi with:
   - Exponential backoff for all write operations (playlist creation, track insertion).
   - 3-level algorithmic song matching (album scan → song search → video fallback).
 
-Auth headers are injected at construction time — no local oauth.json is read.
+Auth headers are injected at construction time via a headers dict loaded
+from the database — no local oauth.json or raw HTTP calls.
 """
 
 import logging
 import re
 import time
 
+import httpx
 from ytmusicapi import YTMusic
 
 logger = logging.getLogger(__name__)
@@ -22,25 +24,37 @@ _INITIAL_BACKOFF_SECS: int = 5
 _BRACKET_RE: re.Pattern[str] = re.compile(r"[\[(].*?[])]")
 
 
+class QuotaExceededError(RuntimeError):
+    """Raised when YouTube Music rate-limits or blocks the request."""
+
+
 class YouTubeClientService:
-    """Stateless YouTube Music client.
+    """Stateless YouTube Music client backed by ytmusicapi.
 
     All network I/O is synchronous (ytmusicapi is blocking).
-    Instantiate once per request/job; pass auth_headers from the
+    Instantiate once per request/job; pass auth_headers dict from the
     caller — never read from a local file here.
     """
 
-    def __init__(self, auth_headers: str) -> None:
-        """Initialise ytmusicapi from injected OAuth header string.
+    def __init__(self, google_access_token: str) -> None:
+        """Initialize with a standard Google OAuth access token.
 
         Args:
-            auth_headers: Raw HTTP header string produced by
-                          ytmusicapi's setup helpers, stored encrypted
-                          in the database and decrypted by the caller.
+            google_access_token: A valid Google OAuth Bearer token with the
+                                 https://www.googleapis.com/auth/youtube scope.
         """
+        self.access_token: str = google_access_token
+        # ytmusicapi is initialized without auth, used ONLY for searching.
         self.yt: YTMusic = YTMusic()
-        import json
-        self._raw_headers = json.loads(auth_headers) if auth_headers else {}
+
+        self.api_base_url: str = "https://www.googleapis.com/youtube/v3"
+
+    def _get_headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
 
     # ------------------------------------------------------------------
     # Playlist creation
@@ -57,7 +71,7 @@ class YouTubeClientService:
         Retries up to _MAX_RETRIES times (starting at _INITIAL_BACKOFF_SECS,
         doubling each attempt) to survive transient rate limits.
 
-        Sleeps 1 s after a successful creation so Google's servers can
+        Sleeps 1 s after a successful creation so YouTube Music servers can
         propagate the new playlist before tracks are inserted.
 
         Args:
@@ -73,41 +87,49 @@ class YouTubeClientService:
         """
         exception_sleep: int = _INITIAL_BACKOFF_SECS
 
-        # Extract raw headers to use with httpx
-        import httpx
-        headers = self._raw_headers
-        
-        url = "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status"
-        payload = {
-            "snippet": {
-                "title": title,
-                "description": description
-            },
-            "status": {
-                "privacyStatus": privacy_status.lower()
-            }
-        }
-
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
                 with httpx.Client() as client:
-                    res = client.post(url, headers=headers, json=payload)
-                    res.raise_for_status()
-                    playlist_id = res.json()["id"]
+                    response = client.post(
+                        f"{self.api_base_url}/playlists",
+                        headers=self._get_headers(),
+                        params={"part": "snippet,status"},
+                        json={
+                            "snippet": {
+                                "title": title,
+                                "description": description,
+                            },
+                            "status": {
+                                "privacyStatus": privacy_status.lower(),
+                            },
+                        },
+                        timeout=10.0,
+                    )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    playlist_id = data["id"]
+                    logger.info(
+                        "Playlist '%s' created on attempt %d/%d (id=%s)",
+                        title,
+                        attempt,
+                        _MAX_RETRIES,
+                        playlist_id,
+                    )
+                    time.sleep(1)
+                    return playlist_id
+                
+                if response.status_code in (401, 403):
+                    raise QuotaExceededError(
+                        f"YouTube API auth/quota error: {response.text}"
+                    )
+                
+                response.raise_for_status()
 
-                logger.info(
-                    "Playlist '%s' created on attempt %d/%d (id=%s)",
-                    title,
-                    attempt,
-                    _MAX_RETRIES,
-                    playlist_id,
-                )
-                # 1-second buffer so the playlist propagates server-side
-                # before we attempt to add tracks.
-                time.sleep(1)
-                return playlist_id
-
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
+                if isinstance(exc, QuotaExceededError):
+                    raise
+                
                 logger.warning(
                     "Playlist creation attempt %d/%d failed: %s",
                     attempt,
@@ -273,35 +295,50 @@ class YouTubeClientService:
         """
         exception_sleep: int = _INITIAL_BACKOFF_SECS
 
-        import httpx
-        headers = self._raw_headers
-        url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet"
-        payload = {
-            "snippet": {
-                "playlistId": playlist_id,
-                "resourceId": {
-                    "kind": "youtube#video",
-                    "videoId": video_id
-                }
-            }
-        }
-
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
                 with httpx.Client() as client:
-                    res = client.post(url, headers=headers, json=payload)
-                    res.raise_for_status()
+                    response = client.post(
+                        f"{self.api_base_url}/playlistItems",
+                        headers=self._get_headers(),
+                        params={"part": "snippet"},
+                        json={
+                            "snippet": {
+                                "playlistId": playlist_id,
+                                "resourceId": {
+                                    "kind": "youtube#video",
+                                    "videoId": video_id,
+                                },
+                            }
+                        },
+                        timeout=10.0,
+                    )
+                
+                if response.status_code == 200:
+                    logger.info(
+                        "Track %s added to playlist %s on attempt %d/%d",
+                        video_id,
+                        playlist_id,
+                        attempt,
+                        _MAX_RETRIES,
+                    )
+                    return
+                
+                if response.status_code in (401, 403):
+                    # Check if it's a quota error
+                    err_data = response.json()
+                    reason = err_data.get("error", {}).get("errors", [{}])[0].get("reason", "")
+                    if reason in ("quotaExceeded", "dailyLimitExceeded"):
+                        raise QuotaExceededError("YouTube Data API quota exceeded.")
+                    else:
+                        logger.warning(f"YouTube API returned 403: {response.text}")
+                
+                response.raise_for_status()
 
-                logger.info(
-                    "Track %s added to playlist %s on attempt %d/%d",
-                    video_id,
-                    playlist_id,
-                    attempt,
-                    _MAX_RETRIES,
-                )
-                return
-
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
+                if isinstance(exc, QuotaExceededError):
+                    raise
+                
                 logger.warning(
                     "Track insertion attempt %d/%d failed for video %s: %s",
                     attempt,

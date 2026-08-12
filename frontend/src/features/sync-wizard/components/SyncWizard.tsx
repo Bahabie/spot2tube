@@ -100,7 +100,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
       );
     case 4:
       if (showYouTubeAuth) {
-        return <YouTubeAuthForm />;
+        return <YouTubeAuthForm isConnected={googleLinked} onNext={() => setStep(5)} />;
       }
       return (
         <ServiceGrid

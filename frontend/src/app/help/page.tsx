@@ -88,10 +88,7 @@ function CategoryCard({
   return (
     <div className="bg-white/[0.02] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-8">
       {/* Category Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.05] ring-1 ring-white/10 text-lg">
-          {category.icon}
-        </div>
+      <div className="mb-6">
         <h2
           className="text-xl font-extrabold tracking-tight text-gray-100"
           style={{ fontFamily: '"Cabinet Grotesk", sans-serif' }}

@@ -40,18 +40,17 @@ class SyncJobResponse(BaseModel):
 async def start_sync_job(request: SyncJobRequest) -> SyncJobResponse:
     """Accept a sync request, create a sync_jobs record, and queue it via PGMQ."""
     supabase = get_supabase_client()
-    
-    # Create the sync_job record first to get a valid DB UUID
+
     response = supabase.table("sync_jobs").insert({
         "user_id": request.user_id,
         "spotify_playlist_id": request.spotify_playlist_id,
         "status": "PENDING",
         "progress_percentage": 0
     }).execute()
-    
+
     if not response.data:
         raise RuntimeError("Failed to create sync_job record in database")
-        
+
     job_id = response.data[0]["id"]
 
     payload = {
@@ -71,9 +70,8 @@ async def start_sync_job(request: SyncJobRequest) -> SyncJobResponse:
         ).execute()
     except Exception as e:
         logger.error(f"Failed to enqueue job {job_id} to PGMQ: {e}")
-        # Mark as failed in DB since we couldn't queue it
         supabase.table("sync_jobs").update({
-            "status": "FAILED", 
+            "status": "FAILED",
             "error_message": "Failed to enqueue job"
         }).eq("id", job_id).execute()
         raise

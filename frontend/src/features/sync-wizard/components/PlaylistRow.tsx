@@ -48,10 +48,10 @@ export function PlaylistRow({ playlist, isSelected, onToggle }: PlaylistRowProps
       
       {/* Playlist Info */}
       <div className="flex-1 overflow-hidden">
-        <h3 className="font-semibold text-[#F3F4F6] truncate transition-colors group-hover:text-white">
+        <h3 className="font-semibold text-[#F3F4F6] truncate transition-colors group-hover:text-white font-cabinet">
           {playlist.name}
         </h3>
-        <p className="text-sm text-[#A1A1AA]">{playlist.tracksCount ?? 0} tracks</p>
+        <p className="text-sm text-[#A1A1AA] font-satoshi">{playlist.tracksCount ?? 0} tracks</p>
       </div>
     </motion.div>
   );

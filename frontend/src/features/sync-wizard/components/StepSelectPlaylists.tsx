@@ -89,14 +89,14 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
     >
       <div className="text-center space-y-6 relative">
         <div className="inline-block mb-2">
-          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md">
+          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md font-satoshi">
             STEP 3/5 • SELECT PLAYLISTS
           </span>
         </div>
-        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm">
+        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm font-cabinet">
           Select Playlists
         </h1>
-        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto">
+        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
           Choose the playlists you want to transfer to your destination service.
         </p>
       </div>
@@ -107,8 +107,8 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#F3F4F6]">Your Library</h2>
-            <p className="text-sm font-medium text-[#A1A1AA] mt-1">{playlists.length} playlists found</p>
+            <h2 className="text-2xl font-bold text-[#F3F4F6] font-cabinet">Your Library</h2>
+              <p className="text-sm font-medium text-[#A1A1AA] mt-1 font-satoshi">{playlists.length} playlists found</p>
           </div>
           <button
             onClick={selectAll}

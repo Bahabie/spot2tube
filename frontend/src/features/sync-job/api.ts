@@ -52,3 +52,23 @@ export async function startSyncJob(
   const data = await response.json();
   return { jobId: data.job_id };
 }
+
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
+
+export async function getJobsProgress(jobIds: string[]) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  
+  const { data, error } = await supabasePublic
+    .from("sync_jobs")
+    .select("id, status, processed_tracks, failed_tracks, total_tracks")
+    .in("id", jobIds)
+    .eq("user_id", session.user.id);
+    
+  if (error) throw new Error(error.message);
+  return data || [];
+}

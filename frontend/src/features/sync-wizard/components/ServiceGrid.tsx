@@ -51,14 +51,14 @@ export function ServiceGrid({ title, stepText, onSelectService, activeServiceId 
     <div className="w-full max-w-5xl mx-auto space-y-16 py-8">
       <div className="text-center space-y-6 relative">
         <div className="inline-block mb-2">
-          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md">
+          <span className="inline-flex items-center rounded-full bg-white/[0.02] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] ring-1 ring-white/10 backdrop-blur-md font-satoshi">
             {stepText}
           </span>
         </div>
-        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm">
+        <h1 className="text-5xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm font-cabinet">
           {title}
         </h1>
-        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto">
+        <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
           Select the music service you want to transfer your playlists from. Your library remains untouched and secure.
         </p>
       </div>

@@ -16,6 +16,7 @@ import logging
 import time
 from typing import Any
 
+from app.db.supabase import get_supabase_client
 from app.services.auth_service import get_valid_token
 from app.services.spotify_api import fetch_playlist_tracks
 from app.services.youtube_client import YouTubeClientService
@@ -92,16 +93,11 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         )
         if not google_token:
             raise RuntimeError(
-                f"Job {job_id}: No valid Google token for user {user_id}"
+                f"Job {job_id}: No valid Google (YouTube Music) token for user {user_id}. "
+                "Please reconnect your Google account via the dashboard."
             )
 
-        import json
-        # ytmusicapi expects the headers as a JSON string
-        yt_auth_headers: str = json.dumps({
-            "Authorization": f"Bearer {google_token}",
-            "User-Agent": "Spot2Tube-Sync/0.1"
-        })
-        yt_service = YouTubeClientService(auth_headers=yt_auth_headers)
+        yt_service = YouTubeClientService(google_access_token=google_token)
 
         # ---- Step 3: Fetch Spotify tracks ----------------------------
         raw_tracks: list[dict[str, Any]] = _run_async(
@@ -138,6 +134,16 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
             job_id,
             youtube_playlist_id,
         )
+
+        # Update initial total tracks in the database
+        supabase = get_supabase_client()
+        try:
+            supabase.table("sync_jobs").update({
+                "total_tracks": len(source_tracks),
+                "youtube_playlist_id": youtube_playlist_id
+            }).eq("id", job_id).execute()
+        except Exception as db_err:  # noqa: BLE001
+            logger.warning("Job %s: Failed to update total_tracks: %s", job_id, db_err)
 
         # ---- Step 5: Data migration loop -----------------------------
         tracks_added_set: set[str] = set()
@@ -197,6 +203,18 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                     track_err,
                 )
 
+            # Update DB every track for real-time UI (or on errors)
+            if idx % 1 == 0 or idx == total_tracks:
+                try:
+                    progress_pct = int(((inserted_count + duplicate_count + error_count) / total_tracks) * 100) if total_tracks > 0 else 0
+                    supabase.table("sync_jobs").update({
+                        "processed_tracks": inserted_count + duplicate_count,
+                        "failed_tracks": error_count,
+                        "progress_percentage": progress_pct
+                    }).eq("id", job_id).execute()
+                except Exception as db_err:  # noqa: BLE001
+                    logger.warning("Job %s: Failed to update progress: %s", job_id, db_err)
+
         # ---- Step 6: Finalization ------------------------------------
         logger.info(
             "Job %s: Sync complete — "
@@ -209,11 +227,18 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         )
 
     except Exception as catastrophic_failure:
+        error_str = f"{type(catastrophic_failure).__name__}: {catastrophic_failure}"
         logger.critical(
-            "Job %s: Catastrophic failure — %s. "
-            "Raising so PGMQ can requeue via visibility timeout.",
+            "Job %s: Catastrophic failure — %s.",
             job_id,
-            catastrophic_failure,
+            error_str,
+            exc_info=True,
         )
+        # Save error to DB before re-raising (job_processor will mark FAILED)
+        try:
+            supabase.table("sync_jobs").update({
+                "error_message": error_str[:500]
+            }).eq("id", job_id).execute()
+        except Exception:  # noqa: BLE001
+            logger.debug("Job %s: Could not persist error_message to DB", job_id)
         raise
-
