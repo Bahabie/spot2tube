@@ -1,6 +1,6 @@
 <div align="center">
 
-# Spot2TubeSync
+# **Spot2TubeSync**
 
 **Spotify to YouTube Music Synchronization**
 
@@ -15,7 +15,7 @@
 
 ## Overview
 
-**spot2tube-sync** is an open source, fully automated SaaS utility designed to seamlessly transfer and synchronize Spotify playlists directly to YouTube Music accounts. Engineered with a strict adherence to API quotas and data integrity, the system abstracts the underlying complexity of cross platform entity matching. The user interface embodies a premium "dark glassmorphism" aesthetic, utilizing deep space black backgrounds (`#0A0A0B`) accentuated by ambient purple and indigo luminescences to deliver a highly professional user experience.
+**Spot2TubeSync** is an open source, fully automated SaaS utility designed to seamlessly transfer and synchronize Spotify playlists directly to YouTube Music accounts. Engineered with a strict adherence to API quotas and data integrity, the system abstracts the underlying complexity of cross platform entity matching. The user interface embodies a premium "dark glassmorphism" aesthetic, utilizing deep space black backgrounds (`#0A0A0B`) accentuated by ambient purple and indigo luminescences to deliver a highly professional user experience.
 
 ## Core Features
 
