@@ -1,6 +1,6 @@
 <div align="center">
 
-# spot2tube-sync
+# Spot2TubeSync
 
 **Spotify to YouTube Music Synchronization**
 
