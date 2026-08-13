@@ -1,20 +1,28 @@
 import time
+from typing import Any
+
 import httpx
-from typing import Optional, Dict, Any
-from app.db.supabase import get_supabase_client
+
 from app.core.config import settings
+from app.db.supabase import get_supabase_client
 
 supabase = get_supabase_client()
 
-async def get_valid_token(user_id: str, provider: str) -> Optional[str]:
+
+async def get_valid_token(user_id: str, provider: str) -> str | None:
     """
     Fetches a valid access token for the given user and provider.
     Refreshes the token if it expires in less than 5 minutes.
     Supports 'spotify' and 'google' providers.
     """
-    response = supabase.schema("next_auth").table("accounts").select(
-        "id, access_token, refresh_token, expires_at"
-    ).eq("userId", user_id).eq("provider", provider).execute()
+    response = (
+        supabase.schema("next_auth")
+        .table("accounts")
+        .select("id, access_token, refresh_token, expires_at")
+        .eq("userId", user_id)
+        .eq("provider", provider)
+        .execute()
+    )
 
     if not response.data:
         return None
@@ -38,16 +46,16 @@ async def get_valid_token(user_id: str, provider: str) -> Optional[str]:
         new_access_token = new_token_data["access_token"]
         new_expires_at = current_time + new_token_data.get("expires_in", 3600)
 
-        supabase.schema("next_auth").table("accounts").update({
-            "access_token": new_access_token,
-            "expires_at": new_expires_at
-        }).eq("id", account["id"]).execute()
+        supabase.schema("next_auth").table("accounts").update(
+            {"access_token": new_access_token, "expires_at": new_expires_at}
+        ).eq("id", account["id"]).execute()
 
         return new_access_token
 
     return access_token
 
-async def _refresh_token(provider: str, refresh_token: str) -> Optional[Dict[str, Any]]:
+
+async def _refresh_token(provider: str, refresh_token: str) -> dict[str, Any] | None:
     """Calls the OAuth provider's token endpoint to refresh the access token."""
     async with httpx.AsyncClient() as client:
         if provider == "spotify":

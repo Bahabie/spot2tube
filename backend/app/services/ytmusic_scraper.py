@@ -5,7 +5,6 @@ to a ytmusicapi search. Auth headers are loaded from ytmusic_auth for
 authenticated search requests.
 """
 
-
 from ytmusicapi import YTMusic
 
 from app.db.supabase import get_supabase_client
@@ -51,10 +50,9 @@ def get_youtube_video_id(
     if search_results:
         video_id = search_results[0].get("videoId")
         if video_id and isrc:
-            supabase.table("track_mappings").insert({
-                "isrc": isrc,
-                "youtube_video_id": video_id
-            }).execute()
+            supabase.table("track_mappings").insert(
+                {"isrc": isrc, "youtube_video_id": video_id}
+            ).execute()
         return video_id
 
     return None

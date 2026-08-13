@@ -105,7 +105,7 @@ class YouTubeClientService:
                         },
                         timeout=10.0,
                     )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     playlist_id = data["id"]
@@ -118,18 +118,18 @@ class YouTubeClientService:
                     )
                     time.sleep(1)
                     return playlist_id
-                
+
                 if response.status_code in (401, 403):
                     raise QuotaExceededError(
                         f"YouTube API auth/quota error: {response.text}"
                     )
-                
+
                 response.raise_for_status()
 
             except Exception as exc:
                 if isinstance(exc, QuotaExceededError):
                     raise
-                
+
                 logger.warning(
                     "Playlist creation attempt %d/%d failed: %s",
                     attempt,
@@ -228,7 +228,9 @@ class YouTubeClientService:
             for song in song_results:
                 yt_title = song.get("title", "")
                 yt_artists: list[dict] = song.get("artists", [])
-                yt_artist_name: str = yt_artists[0].get("name", "") if yt_artists else ""
+                yt_artist_name: str = (
+                    yt_artists[0].get("name", "") if yt_artists else ""
+                )
                 yt_album: dict = song.get("album") or {}
                 yt_album_name: str = yt_album.get("name", "")
 
@@ -237,7 +239,9 @@ class YouTubeClientService:
                     and yt_artist_name.casefold() == artist_name.casefold()
                     and yt_album_name.casefold() == album_name.casefold()
                 ):
-                    logger.debug("Level 2 (song, algo=1 exact) hit for '%s'", track_name)
+                    logger.debug(
+                        "Level 2 (song, algo=1 exact) hit for '%s'", track_name
+                    )
                     return song
 
         elif yt_search_algo == 2:
@@ -246,16 +250,22 @@ class YouTubeClientService:
 
             for song in song_results:
                 raw_yt_title: str = song.get("title", "")
-                clean_yt_title: str = _BRACKET_RE.sub("", raw_yt_title).strip().casefold()
+                clean_yt_title: str = (
+                    _BRACKET_RE.sub("", raw_yt_title).strip().casefold()
+                )
 
                 yt_artists = song.get("artists", [])
                 yt_artist_name = yt_artists[0].get("name", "") if yt_artists else ""
 
-                title_match: bool = clean_track in clean_yt_title or clean_yt_title in clean_track
+                title_match: bool = (
+                    clean_track in clean_yt_title or clean_yt_title in clean_track
+                )
                 artist_match: bool = artist_name.casefold() in yt_artist_name.casefold()
 
                 if title_match and artist_match:
-                    logger.debug("Level 2 (song, algo=2 fuzzy) hit for '%s'", track_name)
+                    logger.debug(
+                        "Level 2 (song, algo=2 fuzzy) hit for '%s'", track_name
+                    )
                     return song
 
             # ---- Level 3: Video fallback (algo 2 only) -------------------
@@ -264,10 +274,7 @@ class YouTubeClientService:
 
             for video in video_results:
                 video_title: str = video.get("title", "").casefold()
-                if (
-                    clean_track in video_title
-                    and artist_name.casefold() in video_title
-                ):
+                if clean_track in video_title and artist_name.casefold() in video_title:
                     logger.debug("Level 3 (video fallback) hit for '%s'", track_name)
                     return video
 
@@ -313,7 +320,7 @@ class YouTubeClientService:
                         },
                         timeout=10.0,
                     )
-                
+
                 if response.status_code == 200:
                     logger.info(
                         "Track %s added to playlist %s on attempt %d/%d",
@@ -323,22 +330,26 @@ class YouTubeClientService:
                         _MAX_RETRIES,
                     )
                     return
-                
+
                 if response.status_code in (401, 403):
                     # Check if it's a quota error
                     err_data = response.json()
-                    reason = err_data.get("error", {}).get("errors", [{}])[0].get("reason", "")
+                    reason = (
+                        err_data.get("error", {})
+                        .get("errors", [{}])[0]
+                        .get("reason", "")
+                    )
                     if reason in ("quotaExceeded", "dailyLimitExceeded"):
                         raise QuotaExceededError("YouTube Data API quota exceeded.")
                     else:
                         logger.warning(f"YouTube API returned 403: {response.text}")
-                
+
                 response.raise_for_status()
 
             except Exception as exc:
                 if isinstance(exc, QuotaExceededError):
                     raise
-                
+
                 logger.warning(
                     "Track insertion attempt %d/%d failed for video %s: %s",
                     attempt,

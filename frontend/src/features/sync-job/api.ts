@@ -1,6 +1,17 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { SignJWT } from "jose";
+
+/** Create an HS256-signed JWT the Python backend can verify with PyJWT. */
+async function createBackendToken(userId: string): Promise<string> {
+  const secret = new TextEncoder().encode(process.env.AUTH_SECRET!);
+  return await new SignJWT({ sub: userId, id: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("60s")
+    .sign(secret);
+}
 
 export async function startSyncJob(
   playlistId: string,
@@ -8,15 +19,14 @@ export async function startSyncJob(
   searchAlgo: number
 ): Promise<{ jobId: string }> {
   const session = await auth();
-  
-  // Extract token from session (adjust based on NextAuth configuration)
-  const token = (session as any)?.supabaseAccessToken || (session as any)?.accessToken || "";
-  
-  if (!token || !session?.user?.id) {
-    throw new Error("Unauthorized: No session token or user ID available.");
+
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized: No user ID available.");
   }
 
-  const response = await fetch("http://127.0.0.1:8000/api/v1/sync/start", {
+  const token = await createBackendToken(session.user.id);
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}/api/v1/sync/start`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -53,22 +63,35 @@ export async function startSyncJob(
   return { jobId: data.job_id };
 }
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function getJobsProgress(jobIds: string[]) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  
-  const { data, error } = await supabasePublic
-    .from("sync_jobs")
-    .select("id, status, processed_tracks, failed_tracks, total_tracks")
-    .in("id", jobIds)
-    .eq("user_id", session.user.id);
-    
-  if (error) throw new Error(error.message);
-  return data || [];
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
+
+    if (!jobIds || jobIds.length === 0) return [];
+
+    const token = await createBackendToken(session.user.id);
+
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const url = new URL(`${baseUrl}/api/v1/sync/jobs`);
+    url.searchParams.append("job_ids", jobIds.join(","));
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.warn(`[API] Transient error fetching job progress: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error("[API] Error polling job progress:", error);
+    return [];
+  }
 }

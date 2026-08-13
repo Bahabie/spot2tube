@@ -36,7 +36,11 @@ async def fetch_playlist_tracks(
                     tracks.append(
                         {
                             "name": track.get("name"),
-                            "artist": track.get("artists", [{}])[0].get("name", "Unknown") if track.get("artists") else "Unknown",
+                            "artist": track.get("artists", [{}])[0].get(
+                                "name", "Unknown"
+                            )
+                            if track.get("artists")
+                            else "Unknown",
                             "album": track.get("album", {}).get("name"),
                             "isrc": track.get("external_ids", {}).get("isrc"),
                         }

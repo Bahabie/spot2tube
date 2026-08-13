@@ -4,7 +4,10 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from app.api.routes import limiter
 from app.api.routes import router as sync_router
 
 logging.basicConfig(
@@ -19,9 +22,18 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Register slowapi rate limiter on the app instance.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Strict CORS — only allow known frontend origins.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://spot2tube-sync.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

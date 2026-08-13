@@ -14,9 +14,6 @@ const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
   db: { schema: "next_auth" },
 });
 
-// Application tables (sync_jobs) live in the public schema
-const supabasePublic = createClient(supabaseUrl, supabaseServiceKey);
-
 async function fetchUserPlaylists(accessToken: string): Promise<SpotifyPlaylist[]> {
   const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
     headers: { Authorization: `Bearer ${accessToken}` },

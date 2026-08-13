@@ -34,6 +34,7 @@ def _run_async(coro: Any) -> Any:
     if loop and loop.is_running():
         # Already inside an event loop (e.g. asyncio.run in job_processor).
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as pool:
             return pool.submit(asyncio.run, coro).result()
     return asyncio.run(coro)
@@ -80,17 +81,13 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
     try:
         # ---- Step 2: Credential retrieval ----------------------------
-        spotify_token: str | None = _run_async(
-            get_valid_token(user_id, "spotify")
-        )
+        spotify_token: str | None = _run_async(get_valid_token(user_id, "spotify"))
         if not spotify_token:
             raise RuntimeError(
                 f"Job {job_id}: No valid Spotify token for user {user_id}"
             )
 
-        google_token: str | None = _run_async(
-            get_valid_token(user_id, "google")
-        )
+        google_token: str | None = _run_async(get_valid_token(user_id, "google"))
         if not google_token:
             raise RuntimeError(
                 f"Job {job_id}: No valid Google (YouTube Music) token for user {user_id}. "
@@ -103,9 +100,7 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         raw_tracks: list[dict[str, Any]] = _run_async(
             fetch_playlist_tracks(spotify_token, spotify_playlist_id)
         )
-        logger.info(
-            "Job %s: Fetched %d tracks from Spotify", job_id, len(raw_tracks)
-        )
+        logger.info("Job %s: Fetched %d tracks from Spotify", job_id, len(raw_tracks))
 
         # Convert to (name, artist, album) tuples for the migration loop.
         source_tracks: list[tuple[str, str, str]] = [
@@ -124,9 +119,7 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         # ---- Step 4: Target playlist creation ------------------------
         youtube_playlist_id: str = yt_service.create_playlist_with_backoff(
             title=target_playlist_name,
-            description=(
-                "Successfully migrated from Spotify via Spot2Tube Sync."
-            ),
+            description=("Successfully migrated from Spotify via Spot2Tube Sync."),
             privacy_status=privacy_status,
         )
         logger.info(
@@ -138,10 +131,12 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         # Update initial total tracks in the database
         supabase = get_supabase_client()
         try:
-            supabase.table("sync_jobs").update({
-                "total_tracks": len(source_tracks),
-                "youtube_playlist_id": youtube_playlist_id
-            }).eq("id", job_id).execute()
+            supabase.table("sync_jobs").update(
+                {
+                    "total_tracks": len(source_tracks),
+                    "youtube_playlist_id": youtube_playlist_id,
+                }
+            ).eq("id", job_id).execute()
         except Exception as db_err:  # noqa: BLE001
             logger.warning("Job %s: Failed to update total_tracks: %s", job_id, db_err)
 
@@ -206,19 +201,32 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
             # Update DB every track for real-time UI (or on errors)
             if idx % 1 == 0 or idx == total_tracks:
                 try:
-                    progress_pct = int(((inserted_count + duplicate_count + error_count) / total_tracks) * 100) if total_tracks > 0 else 0
-                    supabase.table("sync_jobs").update({
-                        "processed_tracks": inserted_count + duplicate_count,
-                        "failed_tracks": error_count,
-                        "progress_percentage": progress_pct
-                    }).eq("id", job_id).execute()
+                    progress_pct = (
+                        int(
+                            (
+                                (inserted_count + duplicate_count + error_count)
+                                / total_tracks
+                            )
+                            * 100
+                        )
+                        if total_tracks > 0
+                        else 0
+                    )
+                    supabase.table("sync_jobs").update(
+                        {
+                            "processed_tracks": inserted_count + duplicate_count,
+                            "failed_tracks": error_count,
+                            "progress_percentage": progress_pct,
+                        }
+                    ).eq("id", job_id).execute()
                 except Exception as db_err:  # noqa: BLE001
-                    logger.warning("Job %s: Failed to update progress: %s", job_id, db_err)
+                    logger.warning(
+                        "Job %s: Failed to update progress: %s", job_id, db_err
+                    )
 
         # ---- Step 6: Finalization ------------------------------------
         logger.info(
-            "Job %s: Sync complete — "
-            "inserted=%d, errors=%d, duplicates=%d, total=%d",
+            "Job %s: Sync complete — inserted=%d, errors=%d, duplicates=%d, total=%d",
             job_id,
             inserted_count,
             error_count,
@@ -236,9 +244,9 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         )
         # Save error to DB before re-raising (job_processor will mark FAILED)
         try:
-            supabase.table("sync_jobs").update({
-                "error_message": error_str[:500]
-            }).eq("id", job_id).execute()
+            supabase.table("sync_jobs").update({"error_message": error_str[:500]}).eq(
+                "id", job_id
+            ).execute()
         except Exception:  # noqa: BLE001
             logger.debug("Job %s: Could not persist error_message to DB", job_id)
         raise
