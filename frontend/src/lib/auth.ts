@@ -33,8 +33,8 @@ const AUTH_ORIGIN = "http://127.0.0.1:3000";
  */
 export const authConfig: NextAuthConfig = {
   adapter: SupabaseAdapter({
-    url: process.env.SUPABASE_URL!,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url: process.env.SUPABASE_URL || "https://placeholder.supabase.co",
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key-for-build",
   }),
 
   providers: [
