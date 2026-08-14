@@ -24,8 +24,7 @@ declare module "next-auth/jwt" {
   }
 }
 
-// Canonical origin for all OAuth redirect URIs.
-const AUTH_ORIGIN = "http://127.0.0.1:3000";
+
 
 /**
  * Raw Auth.js config, exported so route.ts can call @auth/core
@@ -41,7 +40,7 @@ export const authConfig: NextAuthConfig = {
     Spotify({
       clientId: process.env.AUTH_SPOTIFY_ID!,
       clientSecret: process.env.AUTH_SPOTIFY_SECRET!,
-      redirectProxyUrl: `${AUTH_ORIGIN}/api/auth`,
+
       authorization:
         "https://accounts.spotify.com/authorize?scope=" +
         encodeURIComponent(
@@ -70,11 +69,10 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
 
   callbacks: {
-    async redirect({ url }) {
-      // Force baseUrl to 127.0.0.1 to prevent localhost leaking.
-      if (url.startsWith("/")) return `${AUTH_ORIGIN}${url}`;
-      if (new URL(url).origin === AUTH_ORIGIN) return url;
-      return AUTH_ORIGIN;
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
     async jwt({ token, account, user }) {
       if (user) {
