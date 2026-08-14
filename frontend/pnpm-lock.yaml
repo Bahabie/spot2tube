@@ -23,6 +23,9 @@ importers:
       framer-motion:
         specifier: ^13.1.0
         version: 13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      jose:
+        specifier: ^6.2.8
+        version: 6.2.8
       lucide-react:
         specifier: ^1.26.0
         version: 1.28.0(react@19.2.8)
