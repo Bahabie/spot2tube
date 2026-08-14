@@ -73,7 +73,7 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
           let currentProcessed = 0;
           let currentFailed = 0;
 
-          data.forEach(job => {
+          data.forEach((job: { processed_tracks?: number; failed_tracks?: number; status?: string }) => {
             currentProcessed += (job.processed_tracks || 0);
             currentFailed += (job.failed_tracks || 0);
           });
@@ -81,7 +81,7 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
           setProcessedTracks(currentProcessed);
           setFailedTracks(currentFailed);
 
-          const allCompleted = data.every(job => job.status === 'COMPLETED' || job.status === 'FAILED');
+          const allCompleted = data.every((job: { status?: string }) => job.status === 'COMPLETED' || job.status === 'FAILED');
           if (allCompleted) {
             setIsActuallyComplete(true);
             clearInterval(interval);
