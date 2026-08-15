@@ -16,10 +16,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from contextlib import asynccontextmanager
+import asyncio
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from app.worker.job_processor import poll_queue
+    logger.info("Spawning background worker from FastAPI lifespan...")
+    worker_task = asyncio.create_task(poll_queue())
+    yield
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+
 app = FastAPI(
     title="Spot2Tube Sync API",
     description="Multi-tenant SaaS API for migrating Spotify playlists to YouTube Music.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Register slowapi rate limiter on the app instance.
