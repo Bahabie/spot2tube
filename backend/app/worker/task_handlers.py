@@ -18,7 +18,7 @@ from typing import Any
 from app.db.pgmq import update_job_status
 from app.services.auth_service import get_valid_token
 from app.services.spotify_api import fetch_playlist_tracks
-from app.services.youtube_client import YouTubeClientService
+from app.services.youtube_client import QuotaExceededError, YouTubeClientService
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +178,9 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                 # Async sleep allows other jobs to process concurrently without blocking
                 await asyncio.sleep(2)
 
+            except QuotaExceededError:
+                # Quota errors are catastrophic and must halt the job immediately
+                raise
             except (ValueError, RuntimeError) as track_err:
                 error_count += 1
                 logger.warning(
