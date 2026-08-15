@@ -9,20 +9,27 @@ export default async function Home() {
   let googleLinked = false;
 
   if (session?.user?.id) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-      process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key-for-build",
-      { db: { schema: "next_auth" } }
-    );
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          db: { schema: "next_auth" }
+        });
 
-    const { data: accounts } = await supabase
-      .from("accounts")
-      .select("provider")
-      .eq("userId", session.user.id);
+        const { data: accounts, error } = await supabase
+          .from("accounts")
+          .select("provider")
+          .eq("userId", session.user.id);
 
-    if (accounts) {
-      spotifyLinked = accounts.some(a => a.provider === "spotify");
-      googleLinked = accounts.some(a => a.provider === "google");
+        if (!error && accounts) {
+          spotifyLinked = accounts.some(a => a.provider === "spotify");
+          googleLinked = accounts.some(a => a.provider === "google");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch linked accounts in page.tsx:", e);
     }
   }
 
