@@ -41,6 +41,11 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
       for (let i = 0; i < updatedPlaylists.length; i++) {
         const playlist = updatedPlaylists[i];
         const res = await startSyncJob(playlist.id, playlist.name, 0);
+        
+        if (res.error) {
+          throw new Error(res.error);
+        }
+        
         playlist.jobId = res.jobId;
       }
       setExtendedPlaylists(updatedPlaylists);
