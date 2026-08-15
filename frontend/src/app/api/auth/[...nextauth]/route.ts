@@ -39,6 +39,14 @@ function toWebRequest(req: Request): Request {
  * This avoids NextRequest URL normalization entirely.
  */
 async function handler(req: Request): Promise<Response> {
+  // If the user accidentally set AUTH_URL to localhost in Vercel, it breaks production Auth.
+  // We dynamically override AUTH_URL to match the actual request we are serving.
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  if (host) {
+    process.env.AUTH_URL = `${protocol}://${host}/api/auth`;
+  }
+
   const config = { ...authConfig } as unknown as AuthConfig;
   config.trustHost = true;
   setEnvDefaults(process.env, config, true);
