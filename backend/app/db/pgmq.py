@@ -1,18 +1,17 @@
 import json
 from typing import Any
 
-from app.db.pool import db_pool
-
+import app.db.pool
 
 async def read_message(queue_name: str, vt: int = 30) -> dict[str, Any] | None:
     """Reads a single message from the queue and hides it for `vt` seconds asynchronously."""
-    if not db_pool:
+    if not app.db.pool.db_pool:
         raise RuntimeError("Database pool not initialized.")
 
     query = """
         SELECT * FROM pgmq.read($1::text, $2::integer, 1);
     """
-    async with db_pool.acquire() as conn:
+    async with app.db.pool.db_pool.acquire() as conn:
         row = await conn.fetchrow(query, queue_name, vt)
 
     if row:
@@ -32,14 +31,14 @@ async def read_message(queue_name: str, vt: int = 30) -> dict[str, Any] | None:
 
 async def delete_message(queue_name: str, msg_id: int) -> bool:
     """Deletes a message from the queue permanently via the pool."""
-    if not db_pool:
+    if not app.db.pool.db_pool:
         return False
 
     query = """
         SELECT pgmq.delete($1::text, $2::bigint);
     """
     try:
-        async with db_pool.acquire() as conn:
+        async with app.db.pool.db_pool.acquire() as conn:
             result = await conn.fetchval(query, queue_name, msg_id)
             return bool(result)
     except Exception as e:  # noqa: BLE001
@@ -51,7 +50,7 @@ async def update_job_status(
     job_id: str, status: str, extra_updates: dict[str, Any] | None = None
 ) -> None:
     """Helper to update the sync_jobs table efficiently without HTTP overhead."""
-    if not db_pool:
+    if not app.db.pool.db_pool:
         return
 
     updates = {"status": status}
@@ -70,5 +69,5 @@ async def update_job_status(
         SET {", ".join(set_clauses)}
         WHERE id = $1;
     """
-    async with db_pool.acquire() as conn:
+    async with app.db.pool.db_pool.acquire() as conn:
         await conn.execute(query, *values)
