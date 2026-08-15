@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     auth_secret: str
 
+    # Direct DB connection string for asyncpg (use port 6543 for Supabase pgBouncer)
+    database_url: str
+
     spotify_client_id: str
     spotify_client_secret: str
 

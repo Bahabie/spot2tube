@@ -13,10 +13,9 @@ Exception hierarchy:
 
 import asyncio
 import logging
-import time
 from typing import Any
 
-from app.db.supabase import get_supabase_client
+from app.db.pgmq import update_job_status
 from app.services.auth_service import get_valid_token
 from app.services.spotify_api import fetch_playlist_tracks
 from app.services.youtube_client import YouTubeClientService
@@ -24,24 +23,8 @@ from app.services.youtube_client import YouTubeClientService
 logger = logging.getLogger(__name__)
 
 
-def _run_async(coro: Any) -> Any:
-    """Run an async coroutine from synchronous worker context."""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # Already inside an event loop (e.g. asyncio.run in job_processor).
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(asyncio.run, coro).result()
-    return asyncio.run(coro)
-
-
-def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
-    """Execute a full Spotify → YouTube Music playlist migration.
+async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
+    """Execute a full Spotify → YouTube Music playlist migration asynchronously.
 
     Extracts job metadata from the PGMQ payload, creates a target
     playlist on YouTube Music, then iterates through each source track:
@@ -81,13 +64,13 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
     try:
         # ---- Step 2: Credential retrieval ----------------------------
-        spotify_token: str | None = _run_async(get_valid_token(user_id, "spotify"))
+        spotify_token: str | None = await get_valid_token(user_id, "spotify")
         if not spotify_token:
             raise RuntimeError(
                 f"Job {job_id}: No valid Spotify token for user {user_id}"
             )
 
-        google_token: str | None = _run_async(get_valid_token(user_id, "google"))
+        google_token: str | None = await get_valid_token(user_id, "google")
         if not google_token:
             raise RuntimeError(
                 f"Job {job_id}: No valid Google (YouTube Music) token for user {user_id}. "
@@ -97,8 +80,8 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         yt_service = YouTubeClientService(google_access_token=google_token)
 
         # ---- Step 3: Fetch Spotify tracks ----------------------------
-        raw_tracks: list[dict[str, Any]] = _run_async(
-            fetch_playlist_tracks(spotify_token, spotify_playlist_id)
+        raw_tracks: list[dict[str, Any]] = await fetch_playlist_tracks(
+            spotify_token, spotify_playlist_id
         )
         logger.info("Job %s: Fetched %d tracks from Spotify", job_id, len(raw_tracks))
 
@@ -117,9 +100,11 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
             source_tracks.reverse()
 
         # ---- Step 4: Target playlist creation ------------------------
-        youtube_playlist_id: str = yt_service.create_playlist_with_backoff(
+        # Offload synchronous ytmusicapi creation to a thread pool executor
+        youtube_playlist_id: str = await asyncio.to_thread(
+            yt_service.create_playlist_with_backoff,
             title=target_playlist_name,
-            description=("Successfully migrated from Spotify via Spot2Tube Sync."),
+            description="Successfully migrated from Spotify via Spot2Tube Sync.",
             privacy_status=privacy_status,
         )
         logger.info(
@@ -129,14 +114,15 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         )
 
         # Update initial total tracks in the database
-        supabase = get_supabase_client()
         try:
-            supabase.table("sync_jobs").update(
+            await update_job_status(
+                job_id,
+                "PROCESSING",
                 {
                     "total_tracks": len(source_tracks),
                     "youtube_playlist_id": youtube_playlist_id,
-                }
-            ).eq("id", job_id).execute()
+                },
+            )
         except Exception as db_err:  # noqa: BLE001
             logger.warning("Job %s: Failed to update total_tracks: %s", job_id, db_err)
 
@@ -149,7 +135,9 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
         for idx, (track_name, artist, album) in enumerate(source_tracks, 1):
             try:
-                match: dict = yt_service.lookup_song_algorithmically(
+                # Offload synchronous lookup to thread
+                match: dict[str, Any] = await asyncio.to_thread(
+                    yt_service.lookup_song_algorithmically,
                     track_name=track_name,
                     artist_name=artist,
                     album_name=album,
@@ -170,7 +158,9 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
                 tracks_added_set.add(video_id)
 
-                yt_service.add_track_with_backoff(
+                # Offload insertion to thread
+                await asyncio.to_thread(
+                    yt_service.add_track_with_backoff,
                     playlist_id=youtube_playlist_id,
                     video_id=video_id,
                 )
@@ -185,8 +175,8 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                     artist,
                 )
 
-                # Anti-bot buffer — mandatory pause between insertions
-                time.sleep(2)
+                # Async sleep allows other jobs to process concurrently without blocking
+                await asyncio.sleep(2)
 
             except (ValueError, RuntimeError) as track_err:
                 error_count += 1
@@ -198,8 +188,8 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                     track_err,
                 )
 
-            # Update DB every track for real-time UI (or on errors)
-            if idx % 1 == 0 or idx == total_tracks:
+            # Update DB every 5 tracks for real-time UI (or on errors)
+            if idx % 5 == 0 or idx == total_tracks:
                 try:
                     progress_pct = (
                         int(
@@ -212,13 +202,15 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                         if total_tracks > 0
                         else 0
                     )
-                    supabase.table("sync_jobs").update(
+                    await update_job_status(
+                        job_id,
+                        "PROCESSING",
                         {
                             "processed_tracks": inserted_count + duplicate_count,
                             "failed_tracks": error_count,
                             "progress_percentage": progress_pct,
-                        }
-                    ).eq("id", job_id).execute()
+                        },
+                    )
                 except Exception as db_err:  # noqa: BLE001
                     logger.warning(
                         "Job %s: Failed to update progress: %s", job_id, db_err
@@ -244,9 +236,9 @@ def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         )
         # Save error to DB before re-raising (job_processor will mark FAILED)
         try:
-            supabase.table("sync_jobs").update({"error_message": error_str[:500]}).eq(
-                "id", job_id
-            ).execute()
+            await update_job_status(
+                job_id, "FAILED", {"error_message": error_str[:500]}
+            )
         except Exception:  # noqa: BLE001
             logger.debug("Job %s: Could not persist error_message to DB", job_id)
         raise
