@@ -16,11 +16,20 @@ async def read_message(queue_name: str, vt: int = 30) -> dict[str, Any] | None:
 
     if row:
         message_data = row["message"]
-        if isinstance(message_data, str):
+        while isinstance(message_data, str):
             try:
-                message_data = json.loads(message_data)
+                parsed = json.loads(message_data)
+                # Prevent infinite loop if the string is just a quoted string "some string"
+                if parsed == message_data or not isinstance(parsed, (dict, list, str)):
+                    if isinstance(parsed, (dict, list)):
+                        message_data = parsed
+                    break
+                message_data = parsed
             except json.JSONDecodeError:
-                message_data = {}
+                break
+        
+        if not isinstance(message_data, dict):
+            message_data = {}
 
         return {
             "msg_id": row["msg_id"],

@@ -113,7 +113,7 @@ async def start_sync_job(
     try:
         supabase.rpc(
             "pgmq_send",
-            {"queue_name": "spot2tube_jobs", "message": json.dumps(job_payload)},
+            {"queue_name": "spot2tube_jobs", "message": job_payload},
         ).execute()
     except Exception as e:
         logger.error(f"Failed to enqueue job {job_id} to PGMQ: {e}")
