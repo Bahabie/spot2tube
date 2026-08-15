@@ -6,6 +6,7 @@ from app.db.pgmq import delete_message, read_message, update_job_status
 from app.db.pool import close_db_pool, init_db_pool
 from app.worker.task_handlers import process_playlist_sync_job
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
 
 QUEUE_NAME = "spot2tube_jobs"

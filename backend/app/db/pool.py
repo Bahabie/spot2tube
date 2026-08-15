@@ -12,10 +12,8 @@ async def init_db_pool() -> None:
     """Initialize a globally managed, strictly-bounded asyncpg connection pool."""
     global db_pool
     if db_pool is None:
-        # Connect to Supabase's Transaction-mode connection pooler on port 6543
-        pool_url = settings.database_url.replace("5432", "6543")
         db_pool = await asyncpg.create_pool(
-            dsn=pool_url,
+            dsn=settings.database_url,
             min_size=2,
             max_size=10,  # Strict boundary to prevent connection exhaustion under scale
             command_timeout=30.0,
