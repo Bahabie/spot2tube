@@ -40,6 +40,7 @@ function toWebRequest(req: Request): Request {
  */
 async function handler(req: Request): Promise<Response> {
   const config = { ...authConfig } as unknown as AuthConfig;
+  config.trustHost = true;
   setEnvDefaults(process.env, config, true);
 
   return Auth(toWebRequest(req), config);
