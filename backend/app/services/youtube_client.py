@@ -86,6 +86,9 @@ class YouTubeClientService:
             RuntimeError: If all _MAX_RETRIES attempts fail.
         """
         exception_sleep: int = _INITIAL_BACKOFF_SECS
+        
+        # YouTube API rejects titles with angle brackets
+        clean_title = title.replace("<", "").replace(">", "")
 
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
@@ -96,7 +99,7 @@ class YouTubeClientService:
                         params={"part": "snippet,status"},
                         json={
                             "snippet": {
-                                "title": title,
+                                "title": clean_title,
                                 "description": description,
                             },
                             "status": {
@@ -111,7 +114,7 @@ class YouTubeClientService:
                     playlist_id = data["id"]
                     logger.info(
                         "Playlist '%s' created on attempt %d/%d (id=%s)",
-                        title,
+                        clean_title,
                         attempt,
                         _MAX_RETRIES,
                         playlist_id,
@@ -123,11 +126,14 @@ class YouTubeClientService:
                     raise QuotaExceededError(
                         f"YouTube API auth/quota error: {response.text}"
                     )
+                    
+                if response.status_code == 400:
+                    raise ValueError(f"YouTube API rejected the playlist payload: {response.text}")
 
                 response.raise_for_status()
 
             except Exception as exc:
-                if isinstance(exc, QuotaExceededError):
+                if isinstance(exc, (QuotaExceededError, ValueError)):
                     raise
 
                 logger.warning(
@@ -344,10 +350,13 @@ class YouTubeClientService:
                     else:
                         logger.warning(f"YouTube API returned 403: {response.text}")
 
+                if response.status_code in (400, 404):
+                    raise ValueError(f"YouTube API rejected the track (Status {response.status_code}): {response.text}")
+
                 response.raise_for_status()
 
             except Exception as exc:
-                if isinstance(exc, QuotaExceededError):
+                if isinstance(exc, (QuotaExceededError, ValueError)):
                     raise
 
                 logger.warning(
