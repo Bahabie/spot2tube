@@ -51,17 +51,23 @@ async def fetch_playlist_tracks(
     return tracks
 
 async def create_playlist(
-    access_token: str, user_id: str, title: str, description: str, is_public: bool = False
+    access_token: str, supabase_user_id: str, title: str, description: str, is_public: bool = False
 ) -> str:
-    url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
     headers = {"Authorization": f"Bearer {access_token}"}
-    payload = {
-        "name": title,
-        "description": description,
-        "public": is_public
-    }
     
     async with httpx.AsyncClient() as client:
+        # First, fetch the Spotify user ID
+        me_resp = await client.get("https://api.spotify.com/v1/me", headers=headers)
+        me_resp.raise_for_status()
+        spotify_user_id = me_resp.json()["id"]
+
+        url = f"https://api.spotify.com/v1/users/{spotify_user_id}/playlists"
+        payload = {
+            "name": title,
+            "description": description,
+            "public": is_public
+        }
+        
         response = await client.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()["id"]
