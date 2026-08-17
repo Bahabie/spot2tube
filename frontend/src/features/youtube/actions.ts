@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
-import { MappedPlaylist } from "@/features/sync-wizard/components/StepSelectPlaylists";
+import { MappedPlaylist } from "@/features/sync-wizard/types";
 
 export async function getYoutubePlaylists(): Promise<MappedPlaylist[]> {
   const session = await auth();

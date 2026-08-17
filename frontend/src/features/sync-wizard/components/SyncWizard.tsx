@@ -4,7 +4,9 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ServiceGrid } from "./ServiceGrid";
 import { StepSourceAuth } from "./StepSourceAuth";
-import { StepSelectPlaylists, MappedPlaylist } from "./StepSelectPlaylists";
+import { StepSelectPlaylists } from "./StepSelectPlaylists";
+import { MappedPlaylist } from "../types";
+
 import { StepReview } from "./StepReview";
 import { YouTubeAuthForm } from "../../youtube/components/YouTubeAuthForm";
 

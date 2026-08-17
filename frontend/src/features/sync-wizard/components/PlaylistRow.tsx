@@ -1,6 +1,6 @@
 import { motion, Variants } from "framer-motion";
-import { Music, Check } from "lucide-react";
-import type { MappedPlaylist } from "./StepSelectPlaylists";
+import { Check, Music } from "lucide-react";
+import { MappedPlaylist } from "../types";
 
 interface PlaylistRowProps {
   playlist: MappedPlaylist;

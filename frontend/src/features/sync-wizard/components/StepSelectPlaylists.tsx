@@ -3,17 +3,11 @@
 import { useEffect, useState } from "react";
 import { getSpotifyPlaylists } from "@/features/spotify/actions";
 import { getYoutubePlaylists } from "@/features/youtube/actions";
+import { MappedPlaylist } from "../types";
+
 import { Loader2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { PlaylistRow } from "./PlaylistRow";
-
-export interface MappedPlaylist {
-  id: string;
-  name: string;
-  images?: { url: string }[];
-  tracksCount?: number;
-}
-
 interface StepSelectPlaylistsProps {
   onNext: (selected: MappedPlaylist[]) => void;
   initialSelected?: string[];

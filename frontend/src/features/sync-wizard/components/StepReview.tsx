@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { MappedPlaylist } from "./StepSelectPlaylists";
+import { MappedPlaylist } from "../types";
 import { startSyncJob } from "@/features/sync-job/api";
 import { SyncJobProgress, SyncJobPlaylist } from "@/features/sync-job/components/SyncJobProgress";
 
