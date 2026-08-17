@@ -49,46 +49,74 @@ export function YouTubeAuthForm({ isConnected, onNext }: Props) {
 
       <div
         ref={cardRef}
-        className="group relative max-w-2xl mx-auto bg-white/[0.02] backdrop-blur-xl rounded-[2.5rem] p-8 md:p-16 ring-1 ring-inset ring-white/10 hover:ring-white/20 transition-all duration-500 overflow-hidden"
+        className={`group relative max-w-2xl mx-auto bg-white/[0.02] backdrop-blur-xl rounded-[2.5rem] p-8 md:p-16 ring-1 ring-inset transition-all duration-500 overflow-hidden ${
+          isConnected
+            ? "ring-green-500/30 hover:ring-green-500/50 shadow-[0_0_40px_rgba(34,197,94,0.05)]"
+            : "ring-white/10 hover:ring-white/20"
+        }`}
         style={{ transform: "translateZ(0)" }}
       >
         {/* Spotlight Glow */}
         <div
           className="pointer-events-none absolute -inset-px rounded-[2.5rem] opacity-0 transition duration-500 group-hover:opacity-100"
           style={{
-            background: `radial-gradient(800px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 0, 0, 0.08), transparent 40%)`,
+            background: isConnected
+              ? `radial-gradient(800px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(34, 197, 94, 0.08), transparent 40%)`
+              : `radial-gradient(800px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 0, 0, 0.08), transparent 40%)`,
           }}
         />
 
         <div className="flex flex-col items-center justify-center text-center space-y-10 relative z-10">
-          <div className="p-8 rounded-[2rem] bg-white/5 ring-1 ring-white/10 shadow-lg transition-transform duration-500 group-hover:-translate-y-2 group-hover:bg-white/10">
-            <svg viewBox="0 0 24 24" className="w-16 h-16 fill-[#F3F4F6] transition-all duration-500 group-hover:fill-[#FF0000] group-hover:drop-shadow-[0_0_25px_rgba(255,0,0,0.6)]">
-              <path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.2C7.368 19.2 4.8 16.632 4.8 12S7.368 4.8 12 4.8 19.2 7.368 19.2 12 16.632 19.2 12 19.2zM9.6 15.6l6-3.6-6-3.6v7.2z" />
-            </svg>
-          </div>
-          
-          <div className="w-full flex flex-col items-center gap-4">
-            <button
-              onClick={handleConnect}
-              className="w-full max-w-sm flex items-center justify-center gap-3 py-4 px-6 bg-white/5 hover:bg-white/10 text-[#F3F4F6] font-semibold rounded-2xl transition-all duration-300 ring-1 ring-white/10 hover:ring-[#FF0000]/80 hover:shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:-translate-y-1 font-satoshi"
-            >
-              {isConnected ? "Successfully Connected your Google Account" : "Connect your Google Account"}
-              {isConnected && (
-                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              )}
-            </button>
+          {isConnected ? (
+            <>
+              <div className="flex flex-col items-center gap-6">
+                <div className="w-20 h-20 rounded-full bg-green-500/10 ring-1 ring-green-500/40 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                  <svg viewBox="0 0 24 24" className="w-10 h-10 fill-none stroke-green-400 stroke-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-green-400 font-bold text-xl font-satoshi px-4 tracking-tight">
+                  Successfully Connected your Google Account
+                </p>
+              </div>
 
-            {isConnected && (
-              <button
-                onClick={handleSwitchAccount}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-satoshi underline underline-offset-4 mt-2"
-              >
-                Connect a different account
-              </button>
-            )}
-          </div>
+              <div className="w-full flex flex-col items-center gap-4">
+                <button
+                  onClick={handleConnect}
+                  className="w-full max-w-sm flex items-center justify-center gap-3 py-4 px-6 bg-white/5 hover:bg-white/10 text-[#F3F4F6] font-semibold rounded-2xl transition-all duration-300 ring-1 ring-white/10 hover:ring-green-500/50 hover:shadow-[0_0_20px_rgba(34,197,94,0.2)] hover:-translate-y-1 font-satoshi"
+                >
+                  Continue to next step
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={handleSwitchAccount}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-satoshi underline underline-offset-4 mt-2"
+                >
+                  Connect a different account
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-8 rounded-[2rem] bg-white/5 ring-1 ring-white/10 shadow-lg transition-transform duration-500 group-hover:-translate-y-2 group-hover:bg-white/10">
+                <svg viewBox="0 0 24 24" className="w-16 h-16 fill-[#F3F4F6] transition-all duration-500 group-hover:fill-[#FF0000] group-hover:drop-shadow-[0_0_25px_rgba(255,0,0,0.6)]">
+                  <path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.2C7.368 19.2 4.8 16.632 4.8 12S7.368 4.8 12 4.8 19.2 7.368 19.2 12 16.632 19.2 12 19.2zM9.6 15.6l6-3.6-6-3.6v7.2z" />
+                </svg>
+              </div>
+              
+              <div className="w-full flex flex-col items-center gap-4">
+                <button
+                  onClick={handleConnect}
+                  className="w-full max-w-sm flex items-center justify-center gap-3 py-4 px-6 bg-white/5 hover:bg-white/10 text-[#F3F4F6] font-semibold rounded-2xl transition-all duration-300 ring-1 ring-white/10 hover:ring-[#FF0000]/80 hover:shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:-translate-y-1 font-satoshi"
+                >
+                  Connect your Google Account
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </motion.div>
