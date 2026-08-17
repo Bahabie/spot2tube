@@ -42,7 +42,7 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.AUTH_SPOTIFY_SECRET!,
 
       authorization:
-        "https://accounts.spotify.com/authorize?scope=" +
+        "https://accounts.spotify.com/authorize?show_dialog=true&scope=" +
         encodeURIComponent(
           "user-read-email user-read-private playlist-read-private playlist-read-collaborative"
         ),
