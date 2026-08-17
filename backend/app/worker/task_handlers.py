@@ -44,7 +44,9 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
     # ---- Step 1: Extraction ------------------------------------------
     job_id: str = job_payload["job_id"]
     user_id: str = job_payload["user_id"]
-    spotify_playlist_id: str = job_payload["spotify_playlist_id"]
+    spotify_playlist_id: str = job_payload.get("spotify_playlist_id", "")
+    youtube_playlist_id: str = job_payload.get("youtube_playlist_id", "")
+    sync_direction: str = job_payload.get("sync_direction", "spotify_to_youtube")
     target_playlist_name: str = job_payload.get(
         "target_playlist_name", "Spot2Tube Migrated Playlist"
     )
@@ -54,10 +56,10 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
     logger.info(
         "Job %s: Starting playlist sync for user %s "
-        "(spotify_playlist=%s, algo=%d, privacy=%s)",
+        "(direction=%s, algo=%d, privacy=%s)",
         job_id,
         user_id,
-        spotify_playlist_id,
+        sync_direction,
         yt_search_algo,
         privacy_status,
     )
@@ -78,6 +80,12 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
             )
 
         yt_service = YouTubeClientService(google_access_token=google_token)
+
+        if sync_direction == "youtube_to_spotify":
+            await _process_youtube_to_spotify(
+                job_id, user_id, youtube_playlist_id, target_playlist_name, privacy_status, reverse_playlist, yt_service, spotify_token
+            )
+            return
 
         # ---- Step 3: Fetch Spotify tracks ----------------------------
         raw_tracks: list[dict[str, Any]] = await fetch_playlist_tracks(
@@ -101,7 +109,7 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
 
         # ---- Step 4: Target playlist creation ------------------------
         # Offload synchronous ytmusicapi creation to a thread pool executor
-        youtube_playlist_id: str = await asyncio.to_thread(
+        target_yt_playlist_id: str = await asyncio.to_thread(
             yt_service.create_playlist_with_backoff,
             title=target_playlist_name,
             description="Successfully migrated from Spotify via Spot2Tube Sync.",
@@ -110,7 +118,7 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         logger.info(
             "Job %s: Created YouTube playlist %s",
             job_id,
-            youtube_playlist_id,
+            target_yt_playlist_id,
         )
 
         # Update initial total tracks in the database
@@ -120,7 +128,7 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                 "PROCESSING",
                 {
                     "total_tracks": len(source_tracks),
-                    "youtube_playlist_id": youtube_playlist_id,
+                    "youtube_playlist_id": target_yt_playlist_id,
                 },
             )
         except Exception as db_err:  # noqa: BLE001
@@ -161,7 +169,7 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
                 # Offload insertion to thread
                 await asyncio.to_thread(
                     yt_service.add_track_with_backoff,
-                    playlist_id=youtube_playlist_id,
+                    playlist_id=target_yt_playlist_id,
                     video_id=video_id,
                 )
                 inserted_count += 1
@@ -245,3 +253,111 @@ async def process_playlist_sync_job(job_payload: dict[str, Any]) -> None:
         except Exception:  # noqa: BLE001
             logger.debug("Job %s: Could not persist error_message to DB", job_id)
         raise
+
+async def _process_youtube_to_spotify(
+    job_id: str, 
+    user_id: str, 
+    youtube_playlist_id: str, 
+    target_playlist_name: str, 
+    privacy_status: str, 
+    reverse_playlist: bool, 
+    yt_service: YouTubeClientService, 
+    spotify_token: str
+) -> None:
+    from app.services.spotify_api import (
+        add_tracks_to_playlist,
+        create_playlist,
+        search_track,
+    )
+    
+    # 1. Fetch from YouTube
+    raw_tracks = await asyncio.to_thread(yt_service.get_playlist_tracks, youtube_playlist_id)
+    
+    if reverse_playlist:
+        raw_tracks.reverse()
+        
+    # 2. Create Spotify Playlist
+    is_public = privacy_status.upper() == "PUBLIC"
+    target_spotify_playlist_id = await create_playlist(
+        spotify_token, user_id, target_playlist_name, "Successfully migrated from YouTube Music via Spot2Tube Sync.", is_public
+    )
+    
+    try:
+        await update_job_status(
+            job_id,
+            "PROCESSING",
+            {
+                "total_tracks": len(raw_tracks),
+                "spotify_playlist_id": target_spotify_playlist_id,
+            },
+        )
+    except Exception as db_err:  # noqa: BLE001
+        logger.warning("Job %s: Failed to update total_tracks: %s", job_id, db_err)
+        
+    # 3. Match and Add
+    tracks_added_set = set()
+    error_count = 0
+    duplicate_count = 0
+    inserted_count = 0
+    total_tracks = len(raw_tracks)
+    
+    track_uris_to_add = []
+    
+    for idx, track in enumerate(raw_tracks, 1):
+        try:
+            track_name = track["name"]
+            artist = track["artist"]
+            
+            uri = await search_track(spotify_token, track_name, artist)
+            if not uri:
+                raise ValueError(f"No match found on Spotify for {track_name} by {artist}")
+                
+            if uri in tracks_added_set:
+                duplicate_count += 1
+                continue
+                
+            tracks_added_set.add(uri)
+            track_uris_to_add.append(uri)
+            inserted_count += 1
+            
+        except Exception as e:  # noqa: BLE001
+            error_count += 1
+            logger.warning("Job %s: Track error %s", job_id, e)
+            
+        if idx % 5 == 0 or idx == total_tracks:
+            # Batch insert to spotify
+            if track_uris_to_add:
+                try:
+                    await add_tracks_to_playlist(spotify_token, target_spotify_playlist_id, track_uris_to_add)
+                    track_uris_to_add = [] # Clear after insert
+                except Exception as e:  # noqa: BLE001
+                    logger.error("Job %s: Failed to add batch to Spotify: %s", job_id, e)
+                    # If batch fails, we consider them errors
+                    error_count += len(track_uris_to_add)
+                    inserted_count -= len(track_uris_to_add)
+                    track_uris_to_add = []
+                    
+            try:
+                progress_pct = int(((inserted_count + duplicate_count + error_count) / total_tracks) * 100) if total_tracks > 0 else 0
+                await update_job_status(
+                    job_id,
+                    "PROCESSING",
+                    {
+                        "processed_tracks": inserted_count + duplicate_count,
+                        "failed_tracks": error_count,
+                        "progress_percentage": progress_pct,
+                    },
+                )
+            except Exception as db_err:  # noqa: BLE001
+                logger.warning("Job %s: Failed to update progress: %s", job_id, db_err)
+                
+    # Final flush
+    if track_uris_to_add:
+        try:
+            await add_tracks_to_playlist(spotify_token, target_spotify_playlist_id, track_uris_to_add)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Job %s: Failed to add final batch to Spotify: %s", job_id, e)
+            error_count += len(track_uris_to_add)
+            inserted_count -= len(track_uris_to_add)
+            
+    logger.info("Job %s: YT->Spot Sync complete — inserted=%d, errors=%d", job_id, inserted_count, error_count)

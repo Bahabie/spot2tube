@@ -16,7 +16,8 @@ async function createBackendToken(userId: string): Promise<string> {
 export async function startSyncJob(
   playlistId: string,
   targetName: string,
-  searchAlgo: number
+  searchAlgo: number,
+  sourceService: "spotify" | "youtube" = "spotify"
 ): Promise<{ jobId?: string; error?: string }> {
   const session = await auth();
 
@@ -32,20 +33,23 @@ export async function startSyncJob(
       return { error: `Backend URL is set to a local address (${backendUrl}) in a production Vercel environment. Please deploy your Python backend and update NEXT_PUBLIC_BACKEND_URL.` };
     }
 
+    const payload = {
+      target_playlist_name: targetName,
+      yt_search_algo: searchAlgo,
+      privacy_status: "PRIVATE",
+      reverse_playlist: true,
+      user_id: session.user.id,
+      sync_direction: sourceService === "spotify" ? "spotify_to_youtube" : "youtube_to_spotify",
+      ...(sourceService === "spotify" ? { spotify_playlist_id: playlistId } : { youtube_playlist_id: playlistId })
+    };
+
     const response = await fetch(`${backendUrl}/api/v1/sync/start`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({
-        spotify_playlist_id: playlistId,
-        target_playlist_name: targetName,
-        yt_search_algo: searchAlgo,
-        privacy_status: "PRIVATE",
-        reverse_playlist: true,
-        user_id: session.user.id
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {

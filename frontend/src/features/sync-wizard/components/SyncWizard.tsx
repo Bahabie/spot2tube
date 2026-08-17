@@ -13,6 +13,8 @@ interface SyncWizardProps {
   googleLinked: boolean;
 }
 
+export type SyncService = "spotify" | "youtube";
+
 function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,16 +22,9 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   const step = stepParam ? parseInt(stepParam, 10) : 1;
 
   const [selectedPlaylists, setSelectedPlaylists] = useState<MappedPlaylist[]>([]);
-  const [showYouTubeAuth, setShowYouTubeAuth] = useState(false);
+  const [sourceService, setSourceService] = useState<SyncService>("spotify");
 
   useEffect(() => {
-    if (step !== 4) {
-      setShowYouTubeAuth(false);
-    }
-  }, [step]);
-
-  useEffect(() => {
-    // Hydrate playlists from sessionStorage if they exist
     const saved = sessionStorage.getItem("sync_wizard_playlists");
     if (saved) {
       try {
@@ -38,6 +33,10 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
         console.error("Failed to parse saved playlists", e);
       }
     }
+    const savedSource = sessionStorage.getItem("sync_wizard_source") as SyncService;
+    if (savedSource) {
+      setSourceService(savedSource);
+    }
   }, []);
 
   const setStep = (newStep: number) => {
@@ -45,9 +44,10 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   };
 
   const handleSourceSelect = (serviceId: string) => {
-    if (serviceId === "spotify") {
-      setStep(2);
-    }
+    const svc = serviceId as SyncService;
+    setSourceService(svc);
+    sessionStorage.setItem("sync_wizard_source", svc);
+    setStep(2);
   };
 
   const handleSourceAuthNext = () => {
@@ -61,16 +61,19 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
   };
 
   const handleDestinationSelect = (serviceId: string) => {
-    if (serviceId === "youtube") {
-      setShowYouTubeAuth(true);
+    // We can auto-advance if it's the correct opposite service
+    if (sourceService === "spotify" && serviceId === "youtube") {
+      setStep(5);
+    } else if (sourceService === "youtube" && serviceId === "spotify") {
+      setStep(5);
     }
   };
 
   const handleComplete = () => {
-    // Clear session storage and reset wizard or redirect to a dashboard
     sessionStorage.removeItem("sync_wizard_playlists");
+    sessionStorage.removeItem("sync_wizard_source");
     setSelectedPlaylists([]);
-    setStep(1); // or stay on step 5, or show the progress bar page
+    setSourceService("spotify");
     router.push("/");
   };
 
@@ -81,10 +84,12 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
           title="Transfer Playlists Between Music Services"
           stepText="STEP 1/5 • SELECT SOURCE"
           onSelectService={handleSourceSelect}
-          activeServiceId="spotify"
         />
       );
     case 2:
+      if (sourceService === "youtube") {
+        return <YouTubeAuthForm isConnected={googleLinked} onNext={handleSourceAuthNext} />;
+      }
       return (
         <StepSourceAuth
           isAuthenticated={spotifyLinked}
@@ -96,25 +101,27 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
         <StepSelectPlaylists
           onNext={handlePlaylistsNext}
           initialSelected={selectedPlaylists.map((p) => p.id)}
+          sourceService={sourceService}
         />
       );
     case 4:
-      if (showYouTubeAuth) {
+      // Destination auth
+      if (sourceService === "spotify") {
         return <YouTubeAuthForm isConnected={googleLinked} onNext={() => setStep(5)} />;
+      } else {
+        return (
+          <StepSourceAuth
+            isAuthenticated={spotifyLinked}
+            onNext={() => setStep(5)}
+          />
+        );
       }
-      return (
-        <ServiceGrid
-          title="Choose Destination"
-          stepText="STEP 4/5 • SELECT DESTINATION"
-          onSelectService={handleDestinationSelect}
-          activeServiceId="youtube"
-        />
-      );
     case 5:
       return (
         <StepReview
           selectedPlaylists={selectedPlaylists}
           onComplete={handleComplete}
+          sourceService={sourceService}
         />
       );
     default:

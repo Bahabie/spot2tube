@@ -1,6 +1,5 @@
 """API routes for playlist synchronization operations."""
 
-import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -31,14 +30,16 @@ router = APIRouter(tags=["Sync Operations"])
 
 
 class SyncJobRequest(BaseModel):
-    """Inbound request to start a Spotify → YouTube Music sync."""
+    """Inbound request to start a sync."""
 
-    spotify_playlist_id: str
+    spotify_playlist_id: str | None = None
+    youtube_playlist_id: str | None = None
     target_playlist_name: str | None = None
     yt_search_algo: int = 0
     privacy_status: str = "PRIVATE"
     reverse_playlist: bool = True
     user_id: str
+    sync_direction: str = "spotify_to_youtube"
 
 
 class SyncJobResponse(BaseModel):
@@ -87,7 +88,9 @@ async def start_sync_job(
         .insert(
             {
                 "user_id": current_user_id,
-                "spotify_playlist_id": payload.spotify_playlist_id,
+                "spotify_playlist_id": payload.spotify_playlist_id or "",
+                "youtube_playlist_id": payload.youtube_playlist_id or "",
+                "sync_direction": payload.sync_direction,
                 "status": "PENDING",
                 "progress_percentage": 0,
             }
@@ -104,6 +107,8 @@ async def start_sync_job(
         "job_id": job_id,
         "user_id": current_user_id,
         "spotify_playlist_id": payload.spotify_playlist_id,
+        "youtube_playlist_id": payload.youtube_playlist_id,
+        "sync_direction": payload.sync_direction,
         "target_playlist_name": payload.target_playlist_name,
         "yt_search_algo": payload.yt_search_algo,
         "privacy_status": payload.privacy_status,

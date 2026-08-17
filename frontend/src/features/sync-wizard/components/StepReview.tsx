@@ -14,9 +14,10 @@ interface ExtendedPlaylist extends MappedPlaylist {
 interface StepReviewProps {
   selectedPlaylists: MappedPlaylist[];
   onComplete: () => void;
+  sourceService?: "spotify" | "youtube";
 }
 
-export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
+export function StepReview({ selectedPlaylists, onComplete, sourceService = "spotify" }: StepReviewProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
       // Enqueue a sync job for each selected playlist
       for (let i = 0; i < updatedPlaylists.length; i++) {
         const playlist = updatedPlaylists[i];
-        const res = await startSyncJob(playlist.id, playlist.name, 0);
+        const res = await startSyncJob(playlist.id, playlist.name, 0, sourceService);
         
         if (res.error) {
           throw new Error(res.error);
@@ -68,6 +69,26 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
     }));
     return <SyncJobProgress playlists={syncPlaylists} onComplete={onComplete} />;
   }
+
+  const spotifyIcon = (
+    <svg 
+      viewBox="0 0 24 24" 
+      className="w-16 h-16 fill-[#F3F4F6] transition-all duration-300 group-hover:fill-[#1DB954] group-hover:drop-shadow-[0_0_25px_rgba(29,185,84,0.6)]"
+    >
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.54-1.02.72-1.56.3z" />
+    </svg>
+  );
+
+  const youtubeIcon = (
+    <svg
+      viewBox="0 0 24 24"
+      className="w-16 h-16 fill-[#F3F4F6] transition-all duration-300 group-hover:fill-[#FF0000] group-hover:drop-shadow-[0_0_25px_rgba(255,0,0,0.5)]"
+    >
+      <path d="M12 0A12 12 0 1 0 12 24A12 12 0 1 0 12 0ZM12 19.3A7.3 7.3 0 1 1 12 4.7A7.3 7.3 0 1 1 12 19.3ZM12 6A6 6 0 1 0 12 18A6 6 0 1 0 12 6ZM10 9.8L15.3 12L10 14.2V9.8Z" />
+    </svg>
+  );
+
+  const isSourceSpotify = sourceService === "spotify";
 
   return (
     <motion.div 
@@ -99,20 +120,15 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
       >
         <div className="flex flex-col md:flex-row items-stretch justify-between gap-8 relative z-10">
           
-          {/* Source Spotify */}
+          {/* Source */}
           <motion.div 
             variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             className="group flex-1 flex flex-col items-center p-8 bg-white/[0.01] ring-1 ring-white/5 rounded-3xl w-full transition-all duration-300 hover:bg-white/[0.03] hover:ring-white/10"
           >
             <div className="mb-6">
-              <svg 
-                viewBox="0 0 24 24" 
-                className="w-16 h-16 fill-[#F3F4F6] transition-all duration-300 group-hover:fill-[#1DB954] group-hover:drop-shadow-[0_0_25px_rgba(29,185,84,0.6)]"
-              >
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.54-1.02.72-1.56.3z" />
-              </svg>
+              {isSourceSpotify ? spotifyIcon : youtubeIcon}
             </div>
-            <h3 className="text-xl font-bold text-[#F3F4F6] font-cabinet">Spotify</h3>
+            <h3 className="text-xl font-bold text-[#F3F4F6] font-cabinet">{isSourceSpotify ? "Spotify" : "YouTube Music"}</h3>
             <p className="text-[#A1A1AA] text-sm mt-2 font-satoshi">{selectedPlaylists.length} playlists</p>
             <p className="text-[#A1A1AA] text-xs font-semibold mt-1 font-satoshi">{totalTracks} tracks</p>
           </motion.div>
@@ -130,20 +146,15 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
             </motion.div>
           </motion.div>
 
-          {/* Destination YouTube Music */}
+          {/* Destination */}
           <motion.div 
             variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             className="group flex-1 flex flex-col items-center p-8 bg-white/[0.01] ring-1 ring-white/5 rounded-3xl w-full transition-all duration-300 hover:bg-white/[0.03] hover:ring-white/10"
           >
             <div className="mb-6">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-16 h-16 fill-[#F3F4F6] transition-all duration-300 group-hover:fill-[#FF0000] group-hover:drop-shadow-[0_0_25px_rgba(255,0,0,0.5)]"
-              >
-                <path d="M12 0A12 12 0 1 0 12 24A12 12 0 1 0 12 0ZM12 19.3A7.3 7.3 0 1 1 12 4.7A7.3 7.3 0 1 1 12 19.3ZM12 6A6 6 0 1 0 12 18A6 6 0 1 0 12 6ZM10 9.8L15.3 12L10 14.2V9.8Z" />
-              </svg>
+              {!isSourceSpotify ? spotifyIcon : youtubeIcon}
             </div>
-            <h3 className="text-xl font-bold text-[#F3F4F6] font-cabinet">YouTube Music</h3>
+            <h3 className="text-xl font-bold text-[#F3F4F6] font-cabinet">{!isSourceSpotify ? "Spotify" : "YouTube Music"}</h3>
             <p className="text-[#A1A1AA] text-sm mt-2 font-satoshi">Destination</p>
           </motion.div>
           

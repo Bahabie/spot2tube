@@ -65,7 +65,7 @@ export function ServiceGrid({ title, stepText, onSelectService, activeServiceId 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10 px-4">
         {services.map((svc) => {
-          const isActive = activeServiceId === svc.id;
+          const isActive = activeServiceId ? activeServiceId === svc.id : true;
           const isHoveredByOther = hoveredCardId !== null && hoveredCardId !== svc.id;
           
           return (

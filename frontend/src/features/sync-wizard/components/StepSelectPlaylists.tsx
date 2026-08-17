@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSpotifyPlaylists } from "@/features/spotify/actions";
+import { getYoutubePlaylists } from "@/features/youtube/actions";
 import { Loader2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { PlaylistRow } from "./PlaylistRow";
@@ -16,9 +17,14 @@ export interface MappedPlaylist {
 interface StepSelectPlaylistsProps {
   onNext: (selected: MappedPlaylist[]) => void;
   initialSelected?: string[];
+  sourceService?: "spotify" | "youtube";
 }
 
-export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelectPlaylistsProps) {
+export function StepSelectPlaylists({ 
+  onNext, 
+  initialSelected = [], 
+  sourceService = "spotify" 
+}: StepSelectPlaylistsProps) {
   const [playlists, setPlaylists] = useState<MappedPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +34,9 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
   useEffect(() => {
     async function loadPlaylists() {
       try {
-        const data = await getSpotifyPlaylists();
+        const data = sourceService === "spotify" 
+          ? await getSpotifyPlaylists() 
+          : await getYoutubePlaylists();
         setPlaylists(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load playlists.");
@@ -37,7 +45,7 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
       }
     }
     loadPlaylists();
-  }, []);
+  }, [sourceService]);
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
@@ -64,8 +72,10 @@ export function StepSelectPlaylists({ onNext, initialSelected = [] }: StepSelect
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center space-y-6 py-32 animate-in fade-in duration-500">
-        <Loader2 className="w-12 h-12 text-[#1DB954] animate-spin" />
-        <p className="text-[#A1A1AA] font-medium tracking-wide">Connecting to Spotify Library...</p>
+        <Loader2 className={`w-12 h-12 animate-spin ${sourceService === 'spotify' ? 'text-[#1DB954]' : 'text-[#FF0000]'}`} />
+        <p className="text-[#A1A1AA] font-medium tracking-wide">
+          Connecting to {sourceService === 'spotify' ? 'Spotify' : 'YouTube Music'} Library...
+        </p>
       </div>
     );
   }

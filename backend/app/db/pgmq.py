@@ -3,6 +3,7 @@ from typing import Any
 
 import app.db.pool
 
+
 async def read_message(queue_name: str, vt: int = 30) -> dict[str, Any] | None:
     """Reads a single message from the queue and hides it for `vt` seconds asynchronously."""
     if not app.db.pool.db_pool:

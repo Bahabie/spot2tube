@@ -49,3 +49,82 @@ async def fetch_playlist_tracks(
             url = data.get("next")
 
     return tracks
+
+async def create_playlist(
+    access_token: str, user_id: str, title: str, description: str, is_public: bool = False
+) -> str:
+    url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    payload = {
+        "name": title,
+        "description": description,
+        "public": is_public
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()["id"]
+
+async def search_track(
+    access_token: str, track_name: str, artist_name: str
+) -> str | None:
+    url = "https://api.spotify.com/v1/search"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    # Strip brackets and parentheses for better Spotify matching
+    import re
+    clean_track = re.sub(r"[\[(].*?[\])]", "", track_name).strip()
+    clean_artist = artist_name.strip()
+    
+    query = f"track:{clean_track} artist:{clean_artist}"
+    params = {"q": query, "type": "track", "limit": 1}
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
+        
+        if response.status_code == 429:
+            import asyncio
+            retry_after = int(response.headers.get("Retry-After", 5))
+            await asyncio.sleep(retry_after)
+            response = await client.get(url, headers=headers, params=params)
+            
+        response.raise_for_status()
+        data = response.json()
+        
+        items = data.get("tracks", {}).get("items", [])
+        if items:
+            return items[0]["uri"]
+            
+        # Fallback to broader search if not found
+        params = {"q": f"{clean_track} {clean_artist}", "type": "track", "limit": 1}
+        response = await client.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        items = data.get("tracks", {}).get("items", [])
+        if items:
+            return items[0]["uri"]
+            
+        return None
+
+async def add_tracks_to_playlist(
+    access_token: str, playlist_id: str, track_uris: list[str]
+) -> None:
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    # Spotify API accepts max 100 tracks per request
+    chunk_size = 100
+    for i in range(0, len(track_uris), chunk_size):
+        chunk = track_uris[i:i + chunk_size]
+        payload = {"uris": chunk}
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 429:
+                import asyncio
+                retry_after = int(response.headers.get("Retry-After", 5))
+                await asyncio.sleep(retry_after)
+                response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()

@@ -57,6 +57,61 @@ class YouTubeClientService:
         }
 
     # ------------------------------------------------------------------
+    # Playlist Reading
+    # ------------------------------------------------------------------
+
+    def get_playlist_tracks(self, playlist_id: str) -> list[dict]:
+        """Fetch all tracks from a YouTube Music playlist using the YouTube Data API.
+        Returns a list of dicts with 'name', 'artist', 'album'.
+        """
+        tracks = []
+        next_page_token = ""
+
+        with httpx.Client() as client:
+            while True:
+                params = {
+                    "part": "snippet",
+                    "playlistId": playlist_id,
+                    "maxResults": 50,
+                }
+                if next_page_token:
+                    params["pageToken"] = next_page_token
+
+                response = client.get(
+                    f"{self.api_base_url}/playlistItems",
+                    headers=self._get_headers(),
+                    params=params,
+                    timeout=10.0,
+                )
+                
+                if response.status_code in (401, 403):
+                    raise QuotaExceededError(f"YouTube API quota/auth error: {response.text}")
+                response.raise_for_status()
+
+                data = response.json()
+                for item in data.get("items", []):
+                    title = item.get("snippet", {}).get("title", "")
+                    if title and title != "Private video" and title != "Deleted video":
+                        # YouTube Data API doesn't give us clean artist/album metadata.
+                        # We have to infer it from the title or channel title.
+                        channel_title = item.get("snippet", {}).get("videoOwnerChannelTitle", "")
+                        # Remove ' - Topic' from channel title
+                        channel_title = channel_title.removesuffix(" - Topic")
+                            
+                        tracks.append({
+                            "name": title,
+                            "artist": channel_title,
+                            "album": "Unknown", # YT Data API doesn't expose album in playlistItems
+                            "videoId": item.get("snippet", {}).get("resourceId", {}).get("videoId")
+                        })
+                
+                next_page_token = data.get("nextPageToken")
+                if not next_page_token:
+                    break
+
+        return tracks
+
+    # ------------------------------------------------------------------
     # Playlist creation
     # ------------------------------------------------------------------
 
