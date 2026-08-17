@@ -60,9 +60,9 @@ export function YouTubeAuthForm({ isConnected, onNext }: Props) {
           }}
         />
 
-        <div className="flex flex-col items-center justify-center text-center space-y-10 relative z-10 group/content">
-          <div className="p-8 rounded-[2rem] bg-white/5 ring-1 ring-white/10 shadow-lg transition-transform duration-500 group-hover/content:-translate-y-2 group-hover/content:bg-white/10">
-            <svg viewBox="0 0 24 24" className="w-16 h-16 fill-[#F3F4F6] transition-all duration-500 group-hover/content:fill-[#FF0000] group-hover/content:drop-shadow-[0_0_25px_rgba(255,0,0,0.6)]">
+        <div className="flex flex-col items-center justify-center text-center space-y-10 relative z-10">
+          <div className="p-8 rounded-[2rem] bg-white/5 ring-1 ring-white/10 shadow-lg transition-transform duration-500 group-hover:-translate-y-2 group-hover:bg-white/10">
+            <svg viewBox="0 0 24 24" className="w-16 h-16 fill-[#F3F4F6] transition-all duration-500 group-hover:fill-[#FF0000] group-hover:drop-shadow-[0_0_25px_rgba(255,0,0,0.6)]">
               <path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.2C7.368 19.2 4.8 16.632 4.8 12S7.368 4.8 12 4.8 19.2 7.368 19.2 12 16.632 19.2 12 19.2zM9.6 15.6l6-3.6-6-3.6v7.2z" />
             </svg>
           </div>
@@ -72,7 +72,7 @@ export function YouTubeAuthForm({ isConnected, onNext }: Props) {
               onClick={handleConnect}
               className="w-full max-w-sm flex items-center justify-center gap-3 py-4 px-6 bg-white/5 hover:bg-white/10 text-[#F3F4F6] font-semibold rounded-2xl transition-all duration-300 ring-1 ring-white/10 hover:ring-[#FF0000]/80 hover:shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:-translate-y-1 font-satoshi"
             >
-              Connect your YouTube Music Account
+              {isConnected ? "Successfully Connected your Google Account" : "Connect your Google Account"}
               {isConnected && (
                 <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
