@@ -18,7 +18,9 @@ export async function getYoutubePlaylists(): Promise<MappedPlaylist[]> {
     throw new Error("Missing service role key");
   }
   
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    db: { schema: "next_auth" }
+  });
 
   const { data: account, error: accountError } = await supabase
     .from("accounts")

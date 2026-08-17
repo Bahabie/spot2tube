@@ -1,0 +1,12 @@
+
+> spot2tube-sync@0.1.0 start /Users/bahabie/Desktop/spot2tube-sync/frontend
+> next start
+
+   ▲ Next.js 15.5.22
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.15:3000
+
+ ✓ Starting...
+ ✓ Ready in 314ms
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
