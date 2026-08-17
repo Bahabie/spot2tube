@@ -97,7 +97,7 @@ export function StepReview({ selectedPlaylists, onComplete }: StepReviewProps) {
         className="bg-white/[0.02] backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 border border-transparent ring-1 ring-inset ring-white/10 shadow-2xl relative mx-auto max-w-4xl"
         style={{ transform: "translateZ(0)" }}
       >
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+        <div className="flex flex-col md:flex-row items-stretch justify-between gap-8 relative z-10">
           
           {/* Source Spotify */}
           <motion.div 
