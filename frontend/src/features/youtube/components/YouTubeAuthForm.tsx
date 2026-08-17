@@ -85,7 +85,7 @@ export function YouTubeAuthForm({ isConnected, onNext }: Props) {
                   onClick={handleConnect}
                   className="w-full max-w-sm flex items-center justify-center gap-3 py-4 px-6 bg-white/5 hover:bg-white/10 text-[#F3F4F6] font-semibold rounded-2xl transition-all duration-300 ring-1 ring-white/10 hover:ring-green-500/50 hover:shadow-[0_0_20px_rgba(34,197,94,0.2)] hover:-translate-y-1 font-satoshi"
                 >
-                  Continue to next step
+                  Continue to Next Step
                   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
