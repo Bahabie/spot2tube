@@ -118,7 +118,9 @@ export function StepSelectPlaylists({
             onClick={selectAll}
             className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ease-in-out active:scale-95 ${
               selectedIds.size === playlists.length && playlists.length > 0
-                ? "bg-[#1DB954]/10 ring-1 ring-[#1DB954] text-[#1DB954] shadow-[0_0_15px_rgba(29,185,84,0.15)]"
+                ? sourceService === "youtube"
+                  ? "bg-[#FF0000]/10 ring-1 ring-[#FF0000] text-[#FF0000] shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                  : "bg-[#1DB954]/10 ring-1 ring-[#1DB954] text-[#1DB954] shadow-[0_0_15px_rgba(29,185,84,0.15)]"
                 : "bg-white/5 ring-1 ring-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"
             }`}
           >
@@ -141,6 +143,7 @@ export function StepSelectPlaylists({
               playlist={playlist} 
               isSelected={selectedIds.has(playlist.id)} 
               onToggle={toggleSelection} 
+              sourceService={sourceService}
             />
           ))}
         </motion.div>

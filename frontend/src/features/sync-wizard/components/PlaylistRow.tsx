@@ -6,6 +6,7 @@ interface PlaylistRowProps {
   playlist: MappedPlaylist;
   isSelected: boolean;
   onToggle: (id: string) => void;
+  sourceService?: "spotify" | "youtube";
 }
 
 const itemVariants: Variants = {
@@ -13,7 +14,9 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
 
-export function PlaylistRow({ playlist, isSelected, onToggle }: PlaylistRowProps) {
+export function PlaylistRow({ playlist, isSelected, onToggle, sourceService = "spotify" }: PlaylistRowProps) {
+  const activeColor = sourceService === "youtube" ? "bg-[#FF0000]" : "bg-[#1DB954]";
+
   return (
     <motion.div
       variants={itemVariants}
@@ -24,7 +27,7 @@ export function PlaylistRow({ playlist, isSelected, onToggle }: PlaylistRowProps
       <div 
         className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-md transition-all duration-300 ring-1 ring-inset ${
           isSelected 
-            ? "bg-[#1DB954] ring-transparent" 
+            ? `${activeColor} ring-transparent` 
             : "bg-white/5 ring-white/20 group-hover:ring-white/40"
         }`}
       >
