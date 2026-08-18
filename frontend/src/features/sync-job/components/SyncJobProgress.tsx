@@ -27,6 +27,7 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
   const [failedTracks, setFailedTracks] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isActuallyComplete, setIsActuallyComplete] = useState(false);
+  const [hasFailedJob, setHasFailedJob] = useState(false);
   const [fetchedTracks, setFetchedTracks] = useState<Record<string, TrackItem[]>>({});
   
   const totalTracks = playlists.reduce((acc, curr) => acc + curr.tracksCount, 0);
@@ -81,7 +82,15 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
           setProcessedTracks(currentProcessed);
           setFailedTracks(currentFailed);
 
-          const allCompleted = data.every((job: { status?: string }) => job.status === 'COMPLETED' || job.status === 'FAILED');
+          const anyFailed = data.some((job: { status?: string }) => job.status === 'FAILED');
+          if (anyFailed) {
+            setHasFailedJob(true);
+            setIsActuallyComplete(true);
+            clearInterval(interval);
+            return;
+          }
+
+          const allCompleted = data.every((job: { status?: string }) => job.status === 'COMPLETED');
           if (allCompleted) {
             setIsActuallyComplete(true);
             clearInterval(interval);
@@ -141,10 +150,14 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
         </div>
 
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-none tracking-tighter text-[#F3F4F6] drop-shadow-sm font-cabinet">
-          {isComplete ? "Transfer Complete!" : "Transferring Music"}
+          {hasFailedJob ? "Transfer Failed" : isComplete ? "Transfer Complete!" : "Transferring Music"}
         </h1>
         <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
-          {isComplete ? "Your playlists have been successfully synced to YouTube Music." : "Lay back while we securely transfer your playlists."}
+          {hasFailedJob 
+            ? "A critical error occurred (likely YouTube API quota limit exceeded). Transfer was halted." 
+            : isComplete 
+              ? "Your playlists have been successfully synced to YouTube Music." 
+              : "Lay back while we securely transfer your playlists."}
         </p>
       </div>
 
@@ -223,7 +236,7 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
             {/* Thin sleek track */}
             <div className="w-full h-2 bg-white/5 ring-1 ring-inset ring-white/10 rounded-full overflow-hidden shadow-inner">
               <div 
-                className={`h-full bg-[#1DB954] transition-all duration-500 ease-out rounded-full shadow-[0_0_15px_rgba(29,185,84,0.6)] ${!isComplete ? 'animate-pulse' : ''}`}
+                className={`h-full transition-all duration-500 ease-out rounded-full ${hasFailedJob ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)]' : 'bg-[#1DB954] shadow-[0_0_15px_rgba(29,185,84,0.6)]'} ${(!isComplete && !hasFailedJob) ? 'animate-pulse' : ''}`}
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
@@ -245,6 +258,8 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
                 if (i < playlistProcessed) {
                   status = "success";
                 } else if (i < playlistProcessed + playlistFailed) {
+                  status = "failed";
+                } else if (hasFailedJob) {
                   status = "failed";
                 }
                 return { ...rt, status };
