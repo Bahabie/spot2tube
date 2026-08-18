@@ -19,9 +19,9 @@ export function Footer() {
             <Link href="/faq" className="w-full sm:w-48 py-4 rounded-full bg-white/[0.03] backdrop-blur-2xl ring-1 ring-inset ring-white/10 hover:bg-white/[0.08] hover:ring-white/20 transition-all font-medium text-white font-['Satoshi',sans-serif] inline-flex justify-center items-center">
               FAQ
             </Link>
-            <Link href="/contact" className="w-full sm:w-48 py-4 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-2xl ring-1 ring-inset ring-purple-500/30 hover:from-purple-500/30 hover:to-indigo-500/30 transition-all font-medium text-white font-['Satoshi',sans-serif] shadow-[0_0_30px_rgba(168,85,247,0.1)] inline-flex justify-center items-center">
+            <a href="mailto:alibahabys@gmail.com" className="w-full sm:w-48 py-4 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-2xl ring-1 ring-inset ring-purple-500/30 hover:from-purple-500/30 hover:to-indigo-500/30 transition-all font-medium text-white font-['Satoshi',sans-serif] shadow-[0_0_30px_rgba(168,85,247,0.1)] inline-flex justify-center items-center">
               Contact us
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -42,7 +42,7 @@ export function Footer() {
             <h3 className="font-bold text-white mb-6">Help</h3>
             <ul className="space-y-4">
               <li><Link href="/faq" className="text-zinc-500 hover:text-white transition-colors text-sm">FAQ</Link></li>
-              <li><Link href="/contact" className="text-zinc-500 hover:text-white transition-colors text-sm">Contact us</Link></li>
+              <li><a href="mailto:alibahabys@gmail.com" className="text-zinc-500 hover:text-white transition-colors text-sm">Contact us</a></li>
             </ul>
           </div>
 

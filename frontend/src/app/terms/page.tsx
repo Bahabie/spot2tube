@@ -104,7 +104,7 @@ export default function TermsOfUsePage() {
               7. Contact Information
             </h2>
             <p className="leading-relaxed">
-              If you have any questions about these Terms, please contact us at <a href="mailto:support@spot2tube.com" className="text-purple-400 hover:text-purple-300 underline underline-offset-4 transition-colors">support@spot2tube.com</a>.
+              If you have any questions about these Terms, please contact us at <a href="mailto:alibahabys@gmail.com" className="text-purple-400 hover:text-purple-300 underline underline-offset-4 transition-colors">alibahabys@gmail.com</a>.
             </p>
           </div>
           

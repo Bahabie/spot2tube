@@ -110,7 +110,7 @@ export default function PrivacyPolicyPage() {
               7. Contact Us
             </h2>
             <p className="leading-relaxed">
-              If you have any questions or concerns about this Privacy Policy or our data practices, please contact our Data Protection Officer at <a href="mailto:privacy@spot2tube.com" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors">privacy@spot2tube.com</a>.
+              If you have any questions or concerns about this Privacy Policy or our data practices, please contact our Data Protection Officer at <a href="mailto:alibahabys@gmail.com" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors">alibahabys@gmail.com</a>.
             </p>
           </div>
           
