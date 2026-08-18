@@ -16,12 +16,12 @@ export function Footer() {
             Feel free to ask any questions
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-            <button className="w-full sm:w-48 py-4 rounded-full bg-white/[0.03] backdrop-blur-2xl ring-1 ring-inset ring-white/10 hover:bg-white/[0.08] hover:ring-white/20 transition-all font-medium text-white font-['Satoshi',sans-serif]">
+            <Link href="/faq" className="w-full sm:w-48 py-4 rounded-full bg-white/[0.03] backdrop-blur-2xl ring-1 ring-inset ring-white/10 hover:bg-white/[0.08] hover:ring-white/20 transition-all font-medium text-white font-['Satoshi',sans-serif] inline-flex justify-center items-center">
               FAQ
-            </button>
-            <button className="w-full sm:w-48 py-4 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-2xl ring-1 ring-inset ring-purple-500/30 hover:from-purple-500/30 hover:to-indigo-500/30 transition-all font-medium text-white font-['Satoshi',sans-serif] shadow-[0_0_30px_rgba(168,85,247,0.1)]">
+            </Link>
+            <Link href="/contact" className="w-full sm:w-48 py-4 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-2xl ring-1 ring-inset ring-purple-500/30 hover:from-purple-500/30 hover:to-indigo-500/30 transition-all font-medium text-white font-['Satoshi',sans-serif] shadow-[0_0_30px_rgba(168,85,247,0.1)] inline-flex justify-center items-center">
               Contact us
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -34,7 +34,6 @@ export function Footer() {
               <li><Link href="/" className="text-zinc-500 hover:text-white transition-colors text-sm">Home</Link></li>
               <li><Link href="/login" className="text-zinc-500 hover:text-white transition-colors text-sm">Login</Link></li>
               <li><Link href="/plans" className="text-zinc-500 hover:text-white transition-colors text-sm">Plans</Link></li>
-              <li><Link href="/help" className="text-zinc-500 hover:text-white transition-colors text-sm">Help</Link></li>
             </ul>
           </div>
           

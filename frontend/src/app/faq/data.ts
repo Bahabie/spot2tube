@@ -27,7 +27,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "How does Spot2Tube-sync work?",
         answer:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Spot2Tube-sync connects to your accounts via secure OAuth, reads your playlists, and intelligently matches tracks on the destination platform using track metadata such as title, artist, and album.",
+          "Spot2Tube-sync connects to your accounts via secure OAuth, reads your playlists, and intelligently matches tracks on the destination platform using track metadata such as title, artist, and album. It automates the entire process in the background.",
       },
       {
         question: "Is Spot2Tube-sync free?",
@@ -37,7 +37,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "Do I need to create an account?",
         answer:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. You sign in with your existing Spotify or Google account — no separate registration needed.",
+          "You simply sign in with your existing Spotify or Google account. We use secure OAuth login so you don't need to create a separate password or provide any additional registration details.",
       },
       {
         question: "Is my music data safe?",
@@ -47,7 +47,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "Can I transfer playlists that contain explicit tracks?",
         answer:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Explicit content filtering depends on your individual account settings on each platform. Spot2Tube-sync transfers tracks as-is and does not apply its own content filters.",
+          "Yes, explicit tracks are transferred just like any other song. However, availability depends on the destination platform's catalog. Spot2Tube-sync transfers tracks as-is and does not apply its own content filters.",
       },
       {
         question: "How accurate is the track matching?",
@@ -73,12 +73,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "What payment methods does Spot2Tube-sync accept?",
         answer:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. We accept all major credit and debit cards (Visa, Mastercard, Amex), as well as Apple Pay and Google Pay through our Stripe payment provider.",
+          "We accept all major credit and debit cards (Visa, Mastercard, Amex), as well as Apple Pay and Google Pay through our secure Stripe payment provider.",
       },
       {
         question: "Is there a free trial for Premium?",
         answer:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt. New users automatically start on our Free tier which includes a meaningful set of features — no credit card required to try Spot2Tube-sync.",
+          "New users automatically start on our Free tier which includes a meaningful set of features. We occasionally offer limited-time free trials for Premium during special promotional periods.",
       },
       {
         question: "What happens to my playlists if I downgrade from Premium?",

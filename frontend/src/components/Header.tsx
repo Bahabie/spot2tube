@@ -30,11 +30,11 @@ export async function Header() {
             Plans
           </Link>
           <Link 
-            href="/help" 
+            href="/faq" 
             className="text-sm font-medium text-zinc-400 hover:text-[#F3F4F6] transition-colors"
             style={{ fontFamily: '"Satoshi", sans-serif' }}
           >
-            Help
+            FAQ
           </Link>
         </nav>
 
