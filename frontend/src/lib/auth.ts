@@ -40,7 +40,7 @@ export const authConfig: NextAuthConfig = {
     Spotify({
       clientId: process.env.AUTH_SPOTIFY_ID!,
       clientSecret: process.env.AUTH_SPOTIFY_SECRET!,
-
+      allowDangerousEmailAccountLinking: true,
       authorization:
         "https://accounts.spotify.com/authorize?scope=user-read-email user-read-private playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private&show_dialog=true",
     }),
@@ -48,6 +48,7 @@ export const authConfig: NextAuthConfig = {
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           scope: [
