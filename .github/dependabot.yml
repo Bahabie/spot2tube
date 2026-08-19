@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Frontend - Next.js (Node.js/npm)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  # Backend - FastAPI (Python/pip)
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
