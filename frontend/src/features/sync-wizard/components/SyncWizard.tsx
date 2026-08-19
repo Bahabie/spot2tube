@@ -93,6 +93,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
           title="Transfer Playlists Between Music Services"
           stepText="STEP 1/5 • SELECT SOURCE"
           onSelectService={handleSourceSelect}
+          disabledServices={["youtube"]}
         />
       );
     case 2:

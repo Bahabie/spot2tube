@@ -9,9 +9,10 @@ interface ServiceGridProps {
   stepText: string;
   onSelectService: (serviceId: string) => void;
   activeServiceId?: string; // which service is clickable in this step
+  disabledServices?: string[]; // services to disable
 }
 
-export function ServiceGrid({ title, stepText, onSelectService, activeServiceId }: ServiceGridProps) {
+export function ServiceGrid({ title, stepText, onSelectService, activeServiceId, disabledServices = [] }: ServiceGridProps) {
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   const services = [
@@ -33,7 +34,7 @@ export function ServiceGrid({ title, stepText, onSelectService, activeServiceId 
     { 
       id: "youtube", 
       name: "YouTube Music", 
-      description: "Sync to your YouTube Music account",
+      description: disabledServices.includes("youtube") ? "Temporarily disabled as source due to Spotify API rules" : "Sync to your YouTube Music account",
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -65,7 +66,7 @@ export function ServiceGrid({ title, stepText, onSelectService, activeServiceId 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10 px-4">
         {services.map((svc) => {
-          const isActive = activeServiceId ? activeServiceId === svc.id : true;
+          const isActive = (activeServiceId ? activeServiceId === svc.id : true) && !disabledServices.includes(svc.id);
           const isHoveredByOther = hoveredCardId !== null && hoveredCardId !== svc.id;
           
           return (
