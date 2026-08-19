@@ -68,7 +68,7 @@ export function StepSelectPlaylists({
       <div className="flex flex-col items-center justify-center space-y-6 py-32 animate-in fade-in duration-500">
         <Loader2 className={`w-12 h-12 animate-spin ${sourceService === 'spotify' ? 'text-[#1DB954]' : 'text-[#FF0000]'}`} />
         <p className="text-[#A1A1AA] font-medium tracking-wide">
-          Connecting to {sourceService === 'spotify' ? 'Spotify' : 'YouTube Music'} Library...
+          Loading your {sourceService === 'spotify' ? 'Spotify' : 'YouTube Music'} playlists...
         </p>
       </div>
     );

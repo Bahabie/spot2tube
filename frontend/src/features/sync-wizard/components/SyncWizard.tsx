@@ -26,6 +26,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
 
   const [selectedPlaylists, setSelectedPlaylists] = useState<MappedPlaylist[]>([]);
   const [sourceService, setSourceService] = useState<SyncService>("spotify");
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("sync_wizard_playlists");
@@ -40,7 +41,12 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
     if (savedSource) {
       setSourceService(savedSource);
     }
+    setIsHydrated(true);
   }, []);
+
+  if (!isHydrated) {
+    return <div className="h-96 flex items-center justify-center text-[#A1A1AA]">Loading...</div>;
+  }
 
   const setStep = (newStep: number) => {
     router.push(`/?step=${newStep}`);
