@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body className="min-h-screen bg-transparent text-foreground antialiased selection:bg-primary/30 flex flex-col">
+      <body className="min-h-screen bg-[#0A0A0B] text-foreground antialiased selection:bg-primary/30 flex flex-col">
         <AmbientBackground />
         <Header />
         <main className="flex-1">
