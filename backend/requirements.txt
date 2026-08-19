@@ -15,7 +15,7 @@ PyJWT>=2.9.0,<3.0.0
 slowapi>=0.1.10,<1.0.0
 
 # YouTube Music
-ytmusicapi>=1.9.0,<2.0.0
+ytmusicapi>=1.12.2,<2.0.0
 
 # Linting & testing
 ruff>=0.16.3
