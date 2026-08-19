@@ -154,7 +154,7 @@ export function SyncJobProgress({ playlists, onComplete }: SyncJobProgressProps)
         </h1>
         <p className="text-base font-medium leading-relaxed tracking-normal text-[#A1A1AA] max-w-2xl mx-auto font-satoshi">
           {hasFailedJob 
-            ? "A critical error occurred (likely YouTube API quota limit exceeded). Transfer was halted." 
+            ? "A critical error occurred and the transfer was halted. Please check if your accounts have playlist creation permissions." 
             : isComplete 
               ? "Your playlists have been successfully synced to YouTube Music." 
               : "Lay back while we securely transfer your playlists."}
