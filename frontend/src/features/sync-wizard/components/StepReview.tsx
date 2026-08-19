@@ -179,10 +179,14 @@ export function StepReview({ selectedPlaylists, onComplete, sourceService = "spo
           <button
             onClick={handleStartTransfer}
             disabled={isStarting || selectedPlaylists.length === 0}
-            className="flex items-center gap-3 px-10 py-4 bg-white/5 ring-1 ring-white/10 hover:bg-white/10 text-[#F3F4F6] font-bold text-lg rounded-full transition-all duration-300 hover:ring-[#1DB954] shadow-lg hover:shadow-[0_0_20px_rgba(29,185,84,0.3)] disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 active:scale-95"
+            className={`flex items-center gap-3 px-10 py-4 bg-white/5 ring-1 ring-white/10 hover:bg-white/10 text-[#F3F4F6] font-bold text-lg rounded-full transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 active:scale-95 ${
+              isSourceSpotify 
+                ? "hover:ring-[#1DB954] hover:shadow-[0_0_20px_rgba(29,185,84,0.3)]" 
+                : "hover:ring-[#FF0000] hover:shadow-[0_0_20px_rgba(255,0,0,0.3)]"
+            }`}
           >
             {isStarting ? (
-              <><Loader2 className="w-5 h-5 animate-spin text-[#1DB954]" /> Starting Transfer...</>
+              <><Loader2 className={`w-5 h-5 animate-spin ${isSourceSpotify ? 'text-[#1DB954]' : 'text-[#FF0000]'}`} /> Starting Transfer...</>
             ) : (
               "Start Transfer"
             )}
