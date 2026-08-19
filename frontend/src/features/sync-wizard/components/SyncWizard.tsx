@@ -9,6 +9,7 @@ import { MappedPlaylist } from "../types";
 
 import { StepReview } from "./StepReview";
 import { YouTubeAuthForm } from "../../youtube/components/YouTubeAuthForm";
+import { SpotifyAuthForm } from "../../spotify/components/SpotifyAuthForm";
 
 interface SyncWizardProps {
   spotifyLinked: boolean;
@@ -89,13 +90,11 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
         />
       );
     case 2:
-      if (sourceService === "youtube") {
-        return <YouTubeAuthForm isConnected={googleLinked} onNext={handleSourceAuthNext} />;
-      }
       return (
         <StepSourceAuth
-          isAuthenticated={spotifyLinked}
+          isAuthenticated={sourceService === "youtube" ? googleLinked : spotifyLinked}
           onNext={handleSourceAuthNext}
+          sourceService={sourceService}
         />
       );
     case 3:
@@ -111,12 +110,7 @@ function SyncWizardInner({ spotifyLinked, googleLinked }: SyncWizardProps) {
       if (sourceService === "spotify") {
         return <YouTubeAuthForm isConnected={googleLinked} onNext={() => setStep(5)} />;
       } else {
-        return (
-          <StepSourceAuth
-            isAuthenticated={spotifyLinked}
-            onNext={() => setStep(5)}
-          />
-        );
+        return <SpotifyAuthForm isConnected={spotifyLinked} onNext={() => setStep(5)} />;
       }
     case 5:
       return (
