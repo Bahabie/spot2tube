@@ -19,7 +19,7 @@ ytmusicapi>=1.9.0,<2.0.0
 
 # Linting & testing
 ruff>=0.8.0
-pytest>=8.0.0
+pytest>=9.1.1
 pytest-asyncio>=0.24.0
 mypy>=2.3.1
 
