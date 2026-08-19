@@ -67,7 +67,7 @@ export function StepReview({ selectedPlaylists, onComplete, sourceService = "spo
       tracksCount: p.tracksCount ?? 0,
       jobId: p.jobId,
     }));
-    return <SyncJobProgress playlists={syncPlaylists} onComplete={onComplete} />;
+    return <SyncJobProgress playlists={syncPlaylists} onComplete={onComplete} sourceService={sourceService} />;
   }
 
   const spotifyIcon = (
